@@ -18,6 +18,7 @@ ENV/
 .env.*.local
 *.pem
 *.key
+.vscode/
 
 # Vector Database Storage & Volumes
 qdrant_storage/
@@ -41,3 +42,6 @@ coverage.xml
 # Operating System Noise
 .DS_Store
 Thumbs.db
+
+# Session Handover Documentation
+HANDOVER.md
