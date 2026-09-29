@@ -1,0 +1,43 @@
+# Python Bytecode & Cache
+__pycache__/
+*.py[cod]
+*.pyc
+*$py.class
+*.so
+.Python
+
+# Virtual Environments
+.venv/
+env/
+venv/
+ENV/
+
+# Secrets & Environment Files (CRITICAL SECURITY)
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# Vector Database Storage & Volumes
+qdrant_storage/
+data/storage/
+
+# FastEmbed / HuggingFace Model Weights Cache
+local_cache/
+.cache/
+hf_cache/
+
+# Testing & Coverage Artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# Code Quality Linters
+.ruff_cache/
+.mypy_cache/
+
+# Operating System Noise
+.DS_Store
+Thumbs.db
