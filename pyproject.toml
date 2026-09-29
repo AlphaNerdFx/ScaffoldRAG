@@ -1,0 +1,46 @@
+[tool.poetry]
+name = "scaffold-rag"
+version = "0.1.0"
+description = "Production-grade portfolio scaffolding engine using Hybrid RAG"
+authors = ["Youssef Larbi <yousseflarbiprofessional@gmail.com>"]
+readme = "README.md"
+packages = [{include = "app"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.111.0"
+uvicorn = {extras = ["standard"], version = "^0.30.0"}
+pydantic = "^2.7.0"
+pydantic-settings = "^2.2.0"
+instructor = "^1.3.3"
+groq = "^0.9.0"
+qdrant-client = {extras = ["fastembed"], version = "^1.9.1"}
+fastembed = "^0.3.1"
+sentence-transformers = "^3.0.0"
+httpx = "^0.27.0"
+streamlit = "^1.35.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.2.0"
+pytest-asyncio = "^0.23.7"
+pytest-cov = "^5.0.0"
+ruff = "^0.4.5"
+mypy = "^1.10.0"
+ragas = "^0.1.9"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "B", "S", "I"]
+ignore = ["B008"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = "test_*.py"
