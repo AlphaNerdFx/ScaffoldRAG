@@ -33,7 +33,7 @@
 
 *Goal: Author, validate, chunk, and index the 15 reference engineering blueprints.*
 
-- [ ] **Task 1.1: Draft the 15 Core Markdown Blueprints**
+- [X] **Task 1.1: Draft the 15 Core Markdown Blueprints**
 
   - Author 15 modular Markdown files in `data/blueprints/` strictly following the ADR-02 Verification Rubric [Certain]:
     1. `01_in_memory_dense_retrieval.md`
@@ -52,12 +52,12 @@
     14. `14_prometheus_metrics_exporting.md`
     15. `15_production_latency_profiling.md`
   - *DoD:* Each file contains: Module Name, Difficulty Level (1-5), Prerequisites, Markdown Reference Content, and Explicit Tradeoff Profile (Latency, Memory, Complexity) [Certain].
-- [ ] **Task 1.2: Build Corpus Static Linter**
+- [X] **Task 1.2: Build Corpus Static Linter**
 
   - Write `scripts/lint_blueprints.py` to assert that every Markdown file satisfies the schema required by PRD Section 4.2 [Certain].
   - Check that no referenced Python package is abandoned (automated PyPI check or static whitelist) [Certain].
   - *DoD:* Linter runs in under 2 seconds and exits with return code `0` only when all 15 blueprints pass [Certain].
-- [ ] **Task 1.3: FastEmbed Embedding & Qdrant Collection Initializer**
+- [X] **Task 1.3: FastEmbed Embedding & Qdrant Collection Initializer**
 
   - Implement `app/services/indexer.py`.
   - Initialize a Qdrant collection named `engineering_blueprints` configured with:

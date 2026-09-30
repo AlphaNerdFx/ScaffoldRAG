@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2026-09-29
 
 ### Added
+
 - Author foundational system specifications in `docs/PRD_v1.md` and `docs/SPEC_V1.md` covering hybrid search, Reciprocal Rank Fusion, and Cross-Encoder reranking architectures.
 - Define Architecture Decision Records: ADR-01 (Hybrid Inference Topology), ADR-02 (Corpus Verification Rubric), ADR-03 (Qdrant Database Selection), and ADR-04 (`BAAI/bge-small-en-v1.5` Embedding Selection).
 - Implement security policy in `SECURITY.md` covering OWASP Top 10 for LLM Applications and localhost port isolation rules.
@@ -18,14 +19,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Provide comprehensive project setup, reproduction commands, and architecture diagrams in `README.md`.
 
 ### Changed
+
 - Decouple Python virtual environment execution from Windows NTFS (`/mnt/c/`) to native Linux `ext4` partition (`/home/youssef/.virtualenvs/scaffold-rag`) to prevent OS-level sharing violations during C++ wheel compilation.
 - Migrate database persistence strategy from host bind-mounts (`./qdrant_storage`) to native Docker named volumes to enable POSIX `mmap` synchronization on WSL.
 
 ### Fixed
+
 - Resolve `OSError: [Errno 5] Input/output error` caused by Windows Defender locking PyTorch dynamic link libraries (`libtorch_cpu.so`) across the WSL 9P filesystem bridge.
 - Resolve `ValueError: app is not a package` during wheel compilation by provisioning explicit `__init__.py` files across all application subpackages.
 - Fix Docker CLI daemon deadlock by restarting the Hyper-V microVM bridge and stripping deprecated `version` attributes from Docker Compose.
 
 ### Security
+
 - Bind Qdrant container network ports strictly to loopback interface (`127.0.0.1`), eliminating unauthorized network ingress across local area networks.
 - Enforce string-length validation boundaries and schema constraints on ingress request models to mitigate prompt injection and context exhaustion risks.
+
+## [0.2.0] - 2026-09-30
+
+### Added
+
+- Authoring of 15 modular engineering blueprints in `data/blueprints/` covering in-memory retrieval, BM25, RRF, cross-encoders, Ragas, Instructor, circuit breakers, and telemetry.
+- High-performance offline AST linter `scripts/lint_blueprints.py` validating schema constraints, token limits (<= 512), and package whitelists in < 0.12s.
+- Subsystem 1 indexing engine `app/services/indexer.py` utilizing FastEmbed for dual-space embedding (`BAAI/bge-small-en-v1.5` 384-dim dense and `Qdrant/bm25` sparse).
+- Production ingestion script `scripts/ingest_corpus.py` with gRPC upsert batching and Qdrant collection verification.
+- Explicit Qdrant payload schema indexing for `difficulty_level` (Integer) and `prerequisites` (Keyword) to support pre-filtered HNSW traversal.
+- Architecture Decision Record ADR-05 standardizing the flat vector payload schema and deterministic UUIDv5 identifier generation.
+
+### Changed
+
+- `docs/PRD_V1.md`: Updated Section 4.2 JSON payload contract from nested `tradeoff_profile` to flat string fields matching `BlueprintChunk`.
+- `docs/SPEC_V1.md`: Updated `BlueprintChunk` interface with `prerequisites: list[str]` and documented AST extraction grammars in Appendix A.1.
+- `TODO.md`: Formally closed Phase 1 backlog tasks; activated Phase 2.

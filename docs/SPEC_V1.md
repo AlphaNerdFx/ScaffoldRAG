@@ -84,8 +84,9 @@ from qdrant_client import QdrantClient
 
 class BlueprintChunk(BaseModel):
     chunk_id: str = Field(..., description="Deterministic UUIDv5 generated from filepath + header")
-    module_name: str = Field(..., min_length=3, max_length=50)
+    module_name: str = Field(..., min_length=3, max_length=100)
     difficulty_level: int = Field(..., ge=1, le=5)
+    prerequisites: list[str] = Field(default_factory=list)
     header: str = Field(..., min_length=1, max_length=100)
     content: str = Field(..., min_length=50)
     tradeoff_latency: str = Field(...)
@@ -371,45 +372,63 @@ def test_roadmap_stage_count_invariant():
         )
 ```
 
--------------------------------------------------------------------------------
+---
+
 Appendix A: Chunking Methodology & Semantic Boundary Specification
--------------------------------------------------------------------------------
+------------------------------------------------------------------
 
 A.1 Chunking Invariant & Delimiter Strategy
+
 - Splitting Mechanism: Pure structural header splitting matching regular expression `\n(?=## )`. Arbitrary character or token-length sliding window chunking is strictly prohibited [Certain].
 - Semantic Anchoring Invariant: Every generated chunk must prepend the root document title (`# `) to preserve parent domain context in the vector embedding space (`combined_embed_text = "Document: {root_title}\nSection: {header}\nContent: {content}"`) [Certain].
 - Token Ceiling: Maximum allowable tokens per chunk is 512 tokens (bounded by the context limit of BAAI/bge-small-en-v1.5). Any section exceeding 512 tokens must be sub-partitioned by tertiary headers (`### `) [Certain].
 
+A.1.1 Document AST Parsing Grammar & Token Mappings
+All 15 blueprints adhere strictly to the following top-level header and bullet mapping:
+
+- Root Title: `^# Module:\s*(.+)$` -> `module_name`
+- Difficulty: `^-\s*Difficulty Level:\s*([1-5])$` -> `difficulty_level`
+- Prerequisites: `^-\s*Prerequisites:\s*(.+)$` -> `prerequisites` (split by `,`)
+- Latency: `^-\s*Latency Impact:\s*(.+)$` -> `tradeoff_latency`
+- Memory: `^-\s*Memory Footprint:\s*(.+)$` -> `tradeoff_memory`
+- Complexity: `^-\s*Operational Complexity:\s*(.+)$` -> `tradeoff_complexity`
+
 A.2 Engineering Justification
+
 - Vector Embedding Dilution: Fixed-size token windows (e.g., 512 tokens with 50-token overlap) span across multiple unrelated architectural ideas, flattening vector magnitude across competing semantic dimensions [Certain]. Header-delimited chunking guarantees that each vector represents an isolated, single-concept engineering unit.
 - Lexical Integrity for Sparse Search: Arbitrary chunk slicing splits named entities and code tokens across chunk boundaries (e.g., splitting `FastAPI` into two tokens), breaking BM25 sparse inverted index matching [Certain].
 
--------------------------------------------------------------------------------
+---
+
 Appendix B: Reliability Boundaries: Evaluation Harness vs. Circuit Breaker
--------------------------------------------------------------------------------
+--------------------------------------------------------------------------
 
 B.1 Separation of Concerns Matrix
 
-| Dimension | Circuit Breaker (Subsystem 5) | Evaluation Harness (Task 5.1) |
-| :--- | :--- | :--- |
-| Lifecycle Phase | Runtime / Production Traffic | Offline / CI/CD (GitHub Actions) |
-| Monitored Metric | HTTP error codes, network timeouts | Context Precision@K, Faithfulness |
-| Action on Breach | Trips to OPEN; serves cached disk JSON | Blocks Pull Request; exits code 1 |
-| Operational Objective | System Availability & Fault Tolerance | Algorithmic Correctness & Precision |
+| Dimension             | Circuit Breaker (Subsystem 5)          | Evaluation Harness (Task 5.1)       |
+| :-------------------- | :------------------------------------- | :---------------------------------- |
+| Lifecycle Phase       | Runtime / Production Traffic           | Offline / CI/CD (GitHub Actions)    |
+| Monitored Metric      | HTTP error codes, network timeouts     | Context Precision@K, Faithfulness   |
+| Action on Breach      | Trips to OPEN; serves cached disk JSON | Blocks Pull Request; exits code 1   |
+| Operational Objective | System Availability & Fault Tolerance  | Algorithmic Correctness & Precision |
 
 B.2 System Boundary Rules
+
 - Rule 1: The Circuit Breaker MUST NOT execute semantic assertions, metric grading, or quality evaluations during live client requests [Certain]. Its sole function is measuring failure rates against external APIs to prevent thread starvation [Certain].
 - Rule 2: The Evaluation Harness MUST NOT run on live production traffic [Certain]. It executes exclusively against a fixed Golden Dataset (`tests/golden_dataset.json`) to detect regression in retrieval ranking or model faithfulness prior to deployment [Certain].
 
--------------------------------------------------------------------------------
+---
+
 Appendix C: Knowledge Substrate Strategy: Curated Synthetic vs. Scraped Web Data
--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 
 C.1 Corpus Mandate
+
 - Ingestion Scope: The V1 knowledge base is restricted to the 15 curated, schema-compliant Markdown blueprints authored in `data/blueprints/` [Certain].
 - Dynamic Scraping Prohibition: Ingesting raw HTML, third-party blogs, or dynamic online documentation via scrapers is strictly prohibited in V1 [Certain].
 
 C.2 Engineering Justification
+
 - Signal-to-Noise Ratio (SNR): Raw web documentation contains residual navigation tokens, boilerplate headers, and marketing copy that pull dense embeddings away from target technical concepts [Certain].
 - Schema Enforcement: The downstream generation schema requires explicit, balanced tradeoffs (latency, memory, complexity) and verifiable metrics. Public web tutorials rarely document drawbacks uniformly; uncurated data forces downstream LLMs to hallucinate missing fields [Certain].
 - Deterministic Evaluation: Benchmarking retrieval precision via Ragas requires immutable document chunk IDs in the Golden Dataset. Scraped online resources introduce temporal decay, URL drift, and silent content mutations that invalidate evaluation baselines [Certain].

@@ -85,15 +85,15 @@
 
 ```json
 {
-  "id": "uuid-v4",
-  "module_name": "hybrid_search_rrf",
+  "chunk_id": "c1f7a8a2-...",
+  "module_name": "Reciprocal Rank Fusion Hybrid Search",
   "difficulty_level": 2,
-  "prerequisites": ["naive_vector_retrieval"],
-  "content": "Markdown architectural reference explaining BM25 + dense embeddings...",
-  "tradeoff_profile": {
-    "latency_impact": "+20ms to +50ms",
-    "memory_overhead": "Requires hosting sparse index alongside vector index"
-  }
+  "prerequisites": ["blueprint_01_dense_baseline", "blueprint_02_sparse_bm25"],
+  "header": "Architecture Pattern",
+  "content": "Execute parallel retrieval over dense vector and sparse keyword indices...",
+  "tradeoff_latency": "+15ms to +30ms total retrieval latency over single-index search",
+  "tradeoff_memory": "Minimal in-memory footprint (<100 KB) for candidate score dictionaries",
+  "tradeoff_complexity": "RRF is a rank-based heuristic that discards the magnitude of relevance"
 }
 ```
 
@@ -174,26 +174,32 @@ System Handling: Instructor library retries the model up to 2 times, feeding bac
   * Qdrant must run as an isolated container via Docker Compose (`qdrant/qdrant:latest`) exposing port `6333` with disk-backed storage volumes [Certain].
   * In-memory indexing is strictly prohibited to ensure database persistence between application restarts [Certain].
 
-
 ---
+
 ## Appendix A: Metric Threshold Calibration & Validation Methodology
 
 ### A.1 Mathematical Foundation of the 85% Retrieval Precision Metric
+
 * **Formal Definition:** In this system, "Retrieval Precision" strictly refers to **Context Precision** as formulated in the Ragas evaluation framework, rather than simple binary information retrieval precision [Certain]. Context Precision evaluates whether ground-truth relevant context chunks are ranked higher than irrelevant chunks in the retrieval list $K$ [Certain]:
 
-$$\text{Context Precision@K} = \frac{\sum_{k=1}^K (\text{Precision@}k \times v_k)}{\text{Total Relevant Chunks in Top } K}$$
+$$
+\text{Context Precision@K} = \frac{\sum_{k=1}^K (\text{Precision@}k \times v_k)}{\text{Total Relevant Chunks in Top } K}
+$$
 
 Where:
+
 * $K = 4$ (the maximum number of chunks forwarded to the generator LLM) [Certain].
 * $v_k \in \{0, 1\}$ represents whether the chunk at rank $k$ is semantically relevant to the architectural milestone [Certain].
 * $\text{Precision@}k = \frac{\text{Relevant Chunks in Top } k}{k}$ [Certain].
+* **Calibration Rationale (Why 85%?):**
 
-* **Calibration Rationale (Why 85%?):** 
   * If Context Precision drops below $0.70$, the downstream LLM suffers from **Context Poisoning**—it attempts to synthesize irrelevant architectural concepts into the user's roadmap, producing contradictory or unviable patterns [Likely].
-  * Demanding $\ge 0.95$ precision on arbitrary student inputs requires continuous domain-specific fine-tuning of the embedding model, which is an unnecessary overhead for an MVP [Certain]. 
+  * Demanding $\ge 0.95$ precision on arbitrary student inputs requires continuous domain-specific fine-tuning of the embedding model, which is an unnecessary overhead for an MVP [Certain].
   * $0.85$ represents the empirical threshold where the top two retrieved slots are guaranteed to contain ground-truth context, leaving adequate margin for open-ended queries while preventing generation hallucinations [Likely].
 * **Verification Pipeline:** Evaluated against an internal "Golden Dataset" of 30 curated student queries with human-verified blueprint mappings. CI tests will assert that the test suite's mean context precision score remains $\ge 0.85$ across automated test runs [Certain].
+
 ---
+
 ### A.2 Cognitive Justification & Measurement of the 60-Minute Execution Target
 
 * **Formal Definition:** The 60-Minute Execution Target defines the system's **Time-to-Value (TTV)**: the maximum elapsed time from a student receiving their Stage 1 specification to executing their first working HTTP request on a local machine [Certain].
@@ -227,9 +233,7 @@ $$
 
 ---
 
-## Appendix B: Architecture Decision Record (ADR-04)
-
-### ADR-04: Selection of `BAAI/bge-small-en-v1.5` as the Primary Embedding Model
+## ADR-04: Selection of `BAAI/bge-small-en-v1.5` as the Primary Embedding Model
 
 * **Status:** Approved / Enforced
 * **Context:** The system requires an embedding model to vectorize user input queries and match them against the reference architecture corpus. We evaluated five models: `all-MiniLM-L6-v2`, `BAAI/bge-small-en-v1.5`, `BAAI/bge-large-en-v1.5`, `nomic-embed-text-v1.5`, and OpenAI `text-embedding-3-small` [Certain].
@@ -261,3 +265,13 @@ Deploy `BAAI/bge-small-en-v1.5` using the **FastEmbed** runtime (ONNX engine) [C
    * Running locally via ONNX eliminates external API rate limits, authentication credentials, network latency, and billing dependencies [Certain].
 4. **Container Optimization:**
    * Executing through FastEmbed removes the multi-gigabyte PyTorch dependency (`torch`), reducing our production Docker container footprint from $\approx 3.5\text{ GB}$ to under $400\text{ MB}$ [Certain].
+
+---
+
+### ADR-05: Blueprint AST Standardization and Flat Payload Contract
+
+* **Context:** Synthesized blueprint markdown files introduced bulleted metadata labels (`- Latency Impact:`, `- Memory Footprint:`, `- Operational Complexity:`) and flat tradeoff fields, conflicting with PRD 4.2's initial nested `tradeoff_profile`.
+* **Decision:** Standardize vector payload metadata into flat string keys matching `BlueprintChunk` in `SPEC_V1.md`. Enforce deterministic UUIDv5 generation derived from `file_path + header` to guarantee ingestion idempotency.
+* **Consequences:** Eliminates schema nesting in Qdrant payloads, enables single-pass regex extraction in the static linter, and prevents chunk duplication on re-indexing runs.
+
+---
