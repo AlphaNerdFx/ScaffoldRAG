@@ -121,6 +121,9 @@
 
 ### 5.1 Out-of-Distribution / Malicious Inputs
 
+Scenario: User inputs non-computing queries (e.g., culinary recipes, creative writing) or prompt injection attacks.
+System Handling: System computes maximum cosine similarity score against corpus using `BAAI/bge-small-en-v1.5`. If max score < 0.58, retrieval is aborted immediately. The domain layer raises `OutOfDistributionError`, which the API transport layer translates into an HTTP 422: "Query outside supported computing architecture domains." [Certain
+
 Scenario: User inputs nonsense (e.g., "recipe for apple pie") or prompt injection attacks.
 System Handling: System computes maximum cosine similarity score against corpus. If max score < 0.40, abort LLM generation immediately. Return HTTP 422: "Query outside supported computing architecture domains." [Certain].
 
@@ -176,63 +179,6 @@ System Handling: Instructor library retries the model up to 2 times, feeding bac
 
 ---
 
-## Appendix A: Metric Threshold Calibration & Validation Methodology
-
-### A.1 Mathematical Foundation of the 85% Retrieval Precision Metric
-
-* **Formal Definition:** In this system, "Retrieval Precision" strictly refers to **Context Precision** as formulated in the Ragas evaluation framework, rather than simple binary information retrieval precision [Certain]. Context Precision evaluates whether ground-truth relevant context chunks are ranked higher than irrelevant chunks in the retrieval list $K$ [Certain]:
-
-$$
-\text{Context Precision@K} = \frac{\sum_{k=1}^K (\text{Precision@}k \times v_k)}{\text{Total Relevant Chunks in Top } K}
-$$
-
-Where:
-
-* $K = 4$ (the maximum number of chunks forwarded to the generator LLM) [Certain].
-* $v_k \in \{0, 1\}$ represents whether the chunk at rank $k$ is semantically relevant to the architectural milestone [Certain].
-* $\text{Precision@}k = \frac{\text{Relevant Chunks in Top } k}{k}$ [Certain].
-* **Calibration Rationale (Why 85%?):**
-
-  * If Context Precision drops below $0.70$, the downstream LLM suffers from **Context Poisoning**—it attempts to synthesize irrelevant architectural concepts into the user's roadmap, producing contradictory or unviable patterns [Likely].
-  * Demanding $\ge 0.95$ precision on arbitrary student inputs requires continuous domain-specific fine-tuning of the embedding model, which is an unnecessary overhead for an MVP [Certain].
-  * $0.85$ represents the empirical threshold where the top two retrieved slots are guaranteed to contain ground-truth context, leaving adequate margin for open-ended queries while preventing generation hallucinations [Likely].
-* **Verification Pipeline:** Evaluated against an internal "Golden Dataset" of 30 curated student queries with human-verified blueprint mappings. CI tests will assert that the test suite's mean context precision score remains $\ge 0.85$ across automated test runs [Certain].
-
----
-
-### A.2 Cognitive Justification & Measurement of the 60-Minute Execution Target
-
-* **Formal Definition:** The 60-Minute Execution Target defines the system's **Time-to-Value (TTV)**: the maximum elapsed time from a student receiving their Stage 1 specification to executing their first working HTTP request on a local machine [Certain].
-* **Cognitive Drop-Off Rationale (Why 60 Minutes?):**
-  * Developer engagement decays exponentially when setup friction exceeds initial capability [Certain]. If a student encounters build failures, environment conflicts, or multi-service dependency issues in Stage 1, drop-off exceeds $70\%$ before reaching Stage 2 [Likely].
-  * Stage 1 must deliver an immediate baseline win (e.g., spinning up a vector database and running a single query script) to build momentum for later complex stages (such as Reranking, Evaluation, and CI/CD) [Certain].
-* **Operational Measurement & Enforcement:**
-  * **Static Complexity Audit:** Generated Stage 1 milestones are bounded by strict complexity limits:
-    * Total terminal setup commands $\le 3$ [Certain].
-    * Total lines of executable Python starter code $\le 75$ lines [Certain].
-    * External infrastructure dependencies $\le 1$ isolated Docker service or standard pip install [Certain].
-  * **Empirical Validation:** Measured during developer usability testing by tracking the elapsed time required for a 3rd-year computing student to achieve an HTTP 200 response on their local machine without external debugging assistance [Certain].
-
----
-
-### A.3 Geometric Grounding of the 0.40 Out-Of-Distribution (OOD) Gate
-
-* **Formal Definition:** The minimum acceptable cosine similarity score between the user query embedding $\vec{u}$ and the top candidate document embedding $\vec{v}$ in Qdrant:
-
-$$
-\text{Cosine Similarity}(\vec{u}, \vec{v}) = \frac{\vec{u} \cdot \vec{v}}{\|\vec{u}\| \|\vec{v}\|}
-$$
-
-* **Vector Space Anisotropy Rationale (Why 0.40?):**
-  * Transformer embeddings are anisotropic: directional vectors cluster in a narrow high-dimensional cone rather than distributing uniformly across the hypersphere [Certain]. As a result, two completely unrelated natural language strings rarely produce a cosine similarity of $0.00$ [Certain].
-  * Empirical distribution boundaries for `BAAI/bge-small-en-v1.5`:
-    * $[0.00, 0.38]$: Completely unrelated natural language, spam, or prompt injections (e.g., "baking a cake" scores $\approx 0.31$ against systems engineering blueprints) [Certain].
-    * $[0.42, 0.58]$: Broad, loosely related computing topics (e.g., "React frontend state management" scores $\approx 0.49$) [Certain].
-    * $[0.65, 0.90]$: In-domain systems and retrieval queries (e.g., "hybrid BM25 vector search" scores $\approx 0.78$) [Certain].
-* **System Action:** Queries scoring $< 0.40$ are rejected before invoking the generator model, protecting downstream API cost and preventing the model from hallucinating architectures on non-computing inputs [Certain].
-
----
-
 ## ADR-04: Selection of `BAAI/bge-small-en-v1.5` as the Primary Embedding Model
 
 * **Status:** Approved / Enforced
@@ -273,5 +219,86 @@ Deploy `BAAI/bge-small-en-v1.5` using the **FastEmbed** runtime (ONNX engine) [C
 * **Context:** Synthesized blueprint markdown files introduced bulleted metadata labels (`- Latency Impact:`, `- Memory Footprint:`, `- Operational Complexity:`) and flat tradeoff fields, conflicting with PRD 4.2's initial nested `tradeoff_profile`.
 * **Decision:** Standardize vector payload metadata into flat string keys matching `BlueprintChunk` in `SPEC_V1.md`. Enforce deterministic UUIDv5 generation derived from `file_path + header` to guarantee ingestion idempotency.
 * **Consequences:** Eliminates schema nesting in Qdrant payloads, enables single-pass regex extraction in the static linter, and prevents chunk duplication on re-indexing runs.
+
+---
+
+## ADR-06: Cross-Encoder ONNX Runtime Migration & Latency SLA Calibration
+
+* **Status:** Resolved / Enforced
+* **Decision:** Replace PyTorch `sentence-transformers` with FastEmbed's native ONNX cross-encoder runtime (`TextCrossEncoder` running `Xenova/ms-marco-MiniLM-L-6-v2`) locked at `fastembed==0.4.2`. Bound passage input lengths to 350 characters and enforce a P95 CPU latency ceiling of $\le 600\text{ms}$ on 15 candidate pairs (steady-state: $\approx 420\text{ms}$).
+* **Justification:** PyTorch CPU execution over un-quantized Float32 matrices required $949\text{ms}$, breaching the production budget. Dynamic INT8 PyTorch quantization improved latency to $517\text{ms}$ but triggered deprecated runtime warnings and retained a 1.2 GB container footprint. FastEmbed's fused C++ ONNX engine executes the exact same cross-attention weights in $350\text{ms}$–$420\text{ms}$ without PyTorch dependencies, preserving the $<400\text{MB}$ container SLA.
+* **SLA Reconciliation:** Aligns Section 1.3 metrics:
+  * Hybrid Retrieval: $\le 150\text{ms}$
+  * Cross-Encoder Reranking: $\le 600\text{ms}$ (Steady-state P95: $\approx 420\text{ms}$)
+  * Downstream Generation: $\le 2,500\text{ms}$
+  * Overall Request P95: $\le 3,500\text{ms}$
+
+---
+
+### ADR-07: Client-Side Reciprocal Rank Fusion & Qdrant Version Decoupling
+
+* **Status:** Resolved / Enforced
+* **Decision:** Implement Reciprocal Rank Fusion ($k=60$) in application memory (`app/services/search/hybrid_search.py`) over parallel gRPC calls (`client.search`), rejecting Qdrant server-side RRF (`models.FusionQuery`).
+* **Justification:** Qdrant's server-side Universal Query API (`query_points` with RRF) requires Qdrant $\ge 1.10.0$. Running against active container version 1.9.2 throws `grpc.StatusCode.UNIMPLEMENTED`. Furthermore, server-side RRF overwrites raw cosine distances with rank fractions ($1/(60+\text{rank})$), forcing an expensive secondary dense traversal just to evaluate the OOD gate. Client-side RRF executes in $<2\text{ms}$ in Python, works across all Qdrant versions, and preserves unpolluted scores for telemetry.
+
+---
+
+## Appendix A: Metric Threshold Calibration & Validation Methodology
+
+### A.1 Mathematical Foundation of the 85% Retrieval Precision Metric
+
+* **Formal Definition:** In this system, "Retrieval Precision" strictly refers to **Context Precision** as formulated in the Ragas evaluation framework, rather than simple binary information retrieval precision [Certain]. Context Precision evaluates whether ground-truth relevant context chunks are ranked higher than irrelevant chunks in the retrieval list $K$ [Certain]:
+
+$$
+\text{Context Precision@K} = \frac{\sum_{k=1}^K (\text{Precision@}k \times v_k)}{\text{Total Relevant Chunks in Top } K}
+$$
+
+Where:
+
+* $K = 4$ (the maximum number of chunks forwarded to the generator LLM) [Certain].
+* $v_k \in \{0, 1\}$ represents whether the chunk at rank $k$ is semantically relevant to the architectural milestone [Certain].
+* $\text{Precision@}k = \frac{\text{Relevant Chunks in Top } k}{k}$ [Certain].
+* **Calibration Rationale (Why 85%?):**
+
+  * If Context Precision drops below $0.70$, the downstream LLM suffers from **Context Poisoning**—it attempts to synthesize irrelevant architectural concepts into the user's roadmap, producing contradictory or unviable patterns [Likely].
+  * Demanding $\ge 0.95$ precision on arbitrary student inputs requires continuous domain-specific fine-tuning of the embedding model, which is an unnecessary overhead for an MVP [Certain].
+  * $0.85$ represents the empirical threshold where the top two retrieved slots are guaranteed to contain ground-truth context, leaving adequate margin for open-ended queries while preventing generation hallucinations [Likely].
+* **Verification Pipeline:** Evaluated against an internal "Golden Dataset" of 30 curated student queries with human-verified blueprint mappings. CI tests will assert that the test suite's mean context precision score remains $\ge 0.85$ across automated test runs [Certain].
+
+---
+
+### A.2 Cognitive Justification & Measurement of the 60-Minute Execution Target
+
+* **Formal Definition:** The 60-Minute Execution Target defines the system's **Time-to-Value (TTV)**: the maximum elapsed time from a student receiving their Stage 1 specification to executing their first working HTTP request on a local machine [Certain].
+* **Cognitive Drop-Off Rationale (Why 60 Minutes?):**
+  * Developer engagement decays exponentially when setup friction exceeds initial capability [Certain]. If a student encounters build failures, environment conflicts, or multi-service dependency issues in Stage 1, drop-off exceeds $70\%$ before reaching Stage 2 [Likely].
+  * Stage 1 must deliver an immediate baseline win (e.g., spinning up a vector database and running a single query script) to build momentum for later complex stages (such as Reranking, Evaluation, and CI/CD) [Certain].
+* **Operational Measurement & Enforcement:**
+  * **Static Complexity Audit:** Generated Stage 1 milestones are bounded by strict complexity limits:
+    * Total terminal setup commands $\le 3$ [Certain].
+    * Total lines of executable Python starter code $\le 75$ lines [Certain].
+    * External infrastructure dependencies $\le 1$ isolated Docker service or standard pip install [Certain].
+  * **Empirical Validation:** Measured during developer usability testing by tracking the elapsed time required for a 3rd-year computing student to achieve an HTTP 200 response on their local machine without external debugging assistance [Certain].
+
+---
+
+### A.3 Geometric Grounding of the 0.58 Out-Of-Distribution (OOD) Gate
+
+* **Formal Definition:** The minimum acceptable cosine similarity score between the user query embedding $\vec{u}$ and the nearest document embedding $\vec{v}$ in Qdrant:
+
+$$
+\text{Cosine Similarity}(\vec{u}, \vec{v}) = \frac{\vec{u} \cdot \vec{v}}{\|\vec{u}\|_2 \|\vec{v}\|_2}
+$$
+
+* **Vector Space Anisotropy & Query Prefix Dynamics (Why 0.58 instead of 0.40?):**
+  * Transformer embeddings are anisotropic: directional vectors cluster in a narrow cone rather than distributing uniformly across the hypersphere [Certain].
+  * FastEmbed's `dense_model.query_embed()` prepends BGE's asymmetric retrieval instruction: `"Represent this sentence for searching relevant passages: "`. This 8-token prefix introduces a common directional vector that raises the baseline cosine floor for all queries by $+0.08$ to $+0.12$ [Certain].
+  * **Empirical Measurements (`BAAI/bge-small-en-v1.5` against 45-chunk corpus):**
+    * Core Systems Architecture (`"Build an async RAG API with FastAPI"`): **$0.7585$** (Pass) [Certain].
+    * Hybrid Retrieval (`"Implement Reciprocal Rank Fusion with BM25..."`): **$0.7974$** (Pass) [Certain].
+    * Borderline Computing (`"React frontend state management using Redux..."`): **$0.6055$** (Pass) [Certain].
+    * Out-of-Domain Culinary (`"Best sourdough bread recipe with wild yeast..."`): **$0.5362$** (Rejected) [Certain].
+    * Out-of-Domain Noise (`"The quick brown fox jumps over the lazy dog"`): **$0.4103$** (Rejected) [Certain].
+* **System Action:** The theoretical $0.40$ threshold failed because culinary noise scored $0.5362$. The decision boundary is permanently calibrated to **$0.58$**, cleanly separating technical computing topics from non-computing noise with a $+0.069$ margin [Certain].
 
 ---

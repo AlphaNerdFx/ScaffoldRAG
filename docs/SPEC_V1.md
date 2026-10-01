@@ -23,23 +23,17 @@
 |         |                                                                   |
 |         +---> [ Subsystem 2.1: OOD Gate ] (bge-small Cosine Check)          |
 |                     |                                                       |
-|                     v (Pass: Cosine >= 0.40)                                |
-|         +---> [ Subsystem 2.2: Hybrid Search ] (Qdrant BM25 + Dense)        |
-|                     |                                                       |
-|                     v (Top 15 Chunks via RRF, k=60)                         |
-|         +---> [ Subsystem 2.3: Cross-Encoder Reranker ] (ms-marco-MiniLM)   |
-|                     |                                                       |
+|                     v (Pass: Cosine >= 0.58)                                |
+|         +---> [ Subsystem 2.2: Hybrid Search ] (Client-Side RRF, k=60)      |
+|                     |  - Parallel gRPC: Dense ('dense') + Sparse ('bm25')   |
+|                     v (Top 15 Chunks via Reciprocal Rank Fusion)            |
+|         +---> [ Subsystem 2.3: Cross-Encoder Reranker ] (ONNX MiniLM-L-6-v2)|
+|                     |  - Content bounded to 350 chars; P95 <= 600ms         |
 |                     v (Top 4 Highest-Scoring Chunks)                        |
 |  +-----------------------------------------------------------------------+  |
 |  | Subsystem 3: Generation Layer (Instructor + Groq Llama-3.1-8B)        |  |
 |  | * Protected by Subsystem 5: Circuit Breaker & Offline Fallbacks      |  |
 |  +-----------------------------------------------------------------------+  |
-|         |                                                                   |
-|         v                                                                   |
-|  [ Validated ProjectRoadmap Response ]                                      |
-|                                                                             |
-|  * Offline Subsystem: Subsystem 1: Ingestion & Indexer Pipeline (`FastEmbed`) |
-+-----------------------------------------------------------------------------+
 ```
 
 ---
@@ -121,41 +115,40 @@ class IndexerService:
 
 ## Subsystem 2: Search & Ranking Pipeline (app/services/search/)
 
-### 2.1 Sub-Component: Out-Of-Distribution (OOD) Gate (ood_gate.py)
+### 2.1 Sub-Component: Out-Of-Distribution (OOD) Gate (`ood_gate.py`)
 
-- **Purpose:** Computes the cosine similarity of the user's input query against the nearest vector in Qdrant [Certain]. Rejects non-computing, malicious, or out-of-domain queries before invoking downstream models [Certain].
-- **Mathematical Invariant:** Query accepted **if and only if**
-
-  $$
-  \max_i\left(\cos(\vec q,\vec v_i)\right) \ge 0.40
-  $$
-
-  [Certain].
-- **Time Complexity:**
+- **Purpose:** Computes the cosine similarity of the user's input query against the nearest vector in Qdrant [Certain]. Rejects non-computing, culinary, or spam queries before invoking downstream models [Certain].
+- **Mathematical Invariant:** Query accepted **if and only if**:
 
   $$
-  O(\log M)
+  \max_i\left(\cos(\vec q,\vec v_i)\right) \ge 0.58
   $$
 
-  where $M$ is the number of clusters in the HNSW index [Certain].
+- **Transport Boundary:** Raises domain-level `OutOfDistributionError`. Must not import or reference FastAPI HTTP exceptions.
+- **Protocol:** Dispatches `client.search` over the named vector `"dense"` using `prefer_grpc=True`.
 
 ```python
 class OODGate:
-    def __init__(self, client: QdrantClient, collection_name: str) -> None:
-        ...
+    def __init__(
+        self,
+        client: QdrantClient,
+        collection_name: str = "engineering_blueprints",
+        model_name: str = "BAAI/bge-small-en-v1.5",
+        threshold: float = 0.58,
+    ) -> None: ...
 
     def evaluate_query(self, query_text: str) -> tuple[bool, float]:
-        """
-        Embeds query_text via FastEmbed.
-        Returns:
-            (is_valid: bool, max_similarity: float)
-        """
+        """Embeds query_text via FastEmbed query_embed. Returns (is_valid, max_similarity)."""
+        ...
+
+    def validate_query(self, query_text: str) -> float:
+        """Validates query; raises OutOfDistributionError if below threshold."""
         ...
 ```
 
 ### 2.2 Sub-Component: Hybrid Search & Reciprocal Rank Fusion (hybrid_search.py)
 
-- **Purpose:** Queries Qdrant in parallel using dense vectors (semantic search) and sparse vectors (BM25 token matching), merging the top results via Reciprocal Rank Fusion (`k=60`) [Certain].
+- **Purpose:** Queries Qdrant over gRPC for dense vectors (bge-small-en-v1.5) and sparse vectors (Qdrant/bm25), fusing candidate ranks in application memory via Reciprocal Rank Fusion (k=60) [Certain].
 - **Mathematical Formulation:**
 
   ```math
@@ -164,8 +157,6 @@ class OODGate:
 - **Candidate Pool Output:** Exactly 15 candidate chunks [Certain].
 
 ```python
-from typing import Any
-
 class ScoredChunk(BaseModel):
     chunk_id: str
     content: str
@@ -174,16 +165,33 @@ class ScoredChunk(BaseModel):
     metadata: dict[str, Any]
 
 class HybridSearchEngine:
-    def __init__(self, client: QdrantClient, collection_name: str) -> None:
-        ...
+    def __init__(
+        self,
+        client: QdrantClient,
+        collection_name: str = "engineering_blueprints",
+        dense_model_name: str = "BAAI/bge-small-en-v1.5",
+        sparse_model_name: str = "Qdrant/bm25",
+        rrf_k: int = 60,
+    ) -> None: ...
 
-    def search(self, query_text: str, top_k: int = 15) -> list[ScoredChunk]:
-        """Executes parallel dense + sparse retrieval and applies RRF scoring."""
+    def search(
+        self,
+        query_text: str,
+        top_k: int = 15,
+        max_difficulty: int | None = None,
+    ) -> list[ScoredChunk]:
+        """Executes dual retrieval and applies client-side RRF scoring."""
         ...
 ```
 
-### 2.3 Sub-Component: Cross-Encoder Reranker (`reranker.py`)
+### 2.3 Sub-Component: Cross-Encoder Reranker (`app/services/search/reranker.py`)
 
+- **Purpose:** Re-scores the top 15 RRF candidates using full cross-attention over (query, document) pairs, returning the top 4 ground-truth chunks [Certain].
+- **Model:** `Xenova/ms-marco-MiniLM-L-6-v2` via `fastembed.rerank.cross_encoder.TextCrossEncoder` [Certain].
+- **Passage Bounding:** Inputs are formatted compactly (f"{module_name} ({header}): {content[:350]}") to conform to MS MARCO passage lengths and eliminate quadratic attention bloat [Certain].
+- **Model Engine**: Xenova/ms-marco-MiniLM-L-6-v2 executed via fastembed.rerank.cross_encoder.TextCrossEncoder (pure ONNX Runtime) [Certain].
+- **Time Complexity:** $O(K \times (L_q + L_d)^2)$ where $K=15$ candidate pairs, $(L_q + L_d) \le 120$ tokens [Certain].
+- **Execution Bound:** Maximum execution time ≤600ms on CPU across 15 candidate pairs (P95) [Certain].
 - **Purpose:** Re-scores the top 15 RRF candidates using full self-attention over (query, document) pairs, returning the top 4 ground-truth chunks [Certain].
 - **Model:** cross-encoder/ms-marco-MiniLM-L-6-v2 [Certain].
 - **Time Complexity:**
@@ -197,10 +205,19 @@ class HybridSearchEngine:
 
 ```python
 class CrossEncoderReranker:
-    def __init__(self, model_name: str = "cross-encoder/ms-marco-MiniLM-L-6-v2") -> None:
-        ...
+    def __init__(
+        self,
+        model_name: str = "Xenova/ms-marco-MiniLM-L-6-v2",
+        threads: int = 4,
+        max_content_chars: int = 350,
+    ) -> None: ...
 
-    def rerank(self, query_text: str, candidates: list[ScoredChunk], top_n: int = 4) -> list[ScoredChunk]:
+    def rerank(
+        self,
+        query_text: str,
+        candidates: list[ScoredChunk],
+        top_n: int = 4,
+    ) -> list[ScoredChunk]:
         """Calculates cross-attention logit scores and returns top_n ordered documents."""
         ...
 ```

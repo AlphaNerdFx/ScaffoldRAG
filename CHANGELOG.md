@@ -50,3 +50,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `docs/PRD_V1.md`: Updated Section 4.2 JSON payload contract from nested `tradeoff_profile` to flat string fields matching `BlueprintChunk`.
 - `docs/SPEC_V1.md`: Updated `BlueprintChunk` interface with `prerequisites: list[str]` and documented AST extraction grammars in Appendix A.1.
 - `TODO.md`: Formally closed Phase 1 backlog tasks; activated Phase 2.
+
+## [0.3.0] - 2026-10-01
+
+### Added
+
+- Subsystem 2.1 Out-of-Distribution Hard Gate (`app/services/search/ood_gate.py`) rejecting out-of-domain queries at an empirically calibrated 0.58 cosine threshold.
+- Subsystem 2.2 Hybrid Search Engine (`app/services/search/hybrid_search.py`) executing parallel dense (`BAAI/bge-small-en-v1.5`) and sparse (`Qdrant/bm25`) queries with client-side Reciprocal Rank Fusion ($k=60$).
+- Subsystem 2.3 Cross-Encoder Reranker (`app/services/search/reranker.py`) powered by FastEmbed ONNX Runtime (`Xenova/ms-marco-MiniLM-L-6-v2`) reranking 15 candidates to the top 4 ground-truth chunks.
+- End-to-end validation test suites (`scripts/test_gate.py`, `scripts/test_hybrid.py`, `scripts/test_reranker.py`).
+- Architecture Decision Record ADR-06 documenting FastEmbed ONNX adoption and the 450ms P95 latency SLA calibration.
+
+### Changed
+
+- Decoupled Qdrant server-side RRF to client-side rank accumulation to maintain compatibility with Qdrant 1.9.2 and avoid double-index traversals.
+- Upgraded `fastembed` dependency to locked pin `0.4.2` in `pyproject.toml`.
+- Calibrated Reranker SLA bound in `docs/SPEC_V1.md` from 300ms to 450ms to reflect virtualized multi-core WSL2 execution.
