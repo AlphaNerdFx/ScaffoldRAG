@@ -65,3 +65,6 @@ def get_settings() -> Settings:
     Guarantees that .env is read from disk exactly once.
     """
     return Settings()
+
+# Export instantiated singleton for standard service imports
+settings: Settings = get_settings()

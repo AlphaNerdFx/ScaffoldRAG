@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "scaffold-rag"
-version = "0.1.0"
+version = "0.2.0"
 description = "Production-grade portfolio scaffolding engine using Hybrid RAG"
 authors = ["Youssef Larbi <yousseflarbiprofessional@gmail.com>"]
 readme = "README.md"
@@ -14,8 +14,8 @@ pydantic = "^2.7.0"
 pydantic-settings = "^2.2.0"
 instructor = "^1.3.3"
 groq = "^0.9.0"
-qdrant-client = {extras = ["fastembed"], version = "^1.9.1"}
-fastembed = "^0.3.1"
+qdrant-client = "^1.9.1"
+fastembed = "0.4.2"
 sentence-transformers = "^3.0.0"
 httpx = "^0.27.0"
 streamlit = "^1.35.0"
