@@ -228,7 +228,7 @@ class CrossEncoderReranker:
 
 ### 3.1 Purpose & Contract
 
-Takes the top 4 reranked architecture chunks and user constraints, compiles a grounded system prompt, and invokes llama-3.1-8b-instant via Groq wrapped with Instructor [Certain]. Guarantees 100% valid Pydantic output using automated retry loops [Certain].
+Takes the top 4 reranked architecture chunks and user constraints, compiles a grounded system prompt with negative constraints, and invokes `openai/gpt-oss-20b` via Groq wrapped with Instructor in `Mode.JSON` [Certain]. Guarantees 100% valid Pydantic output using automated 2-retry reflection loops and explicit `max_tokens=4096` completion bounds [Certain].
 
 ### 3.2 Data Models & Field Invariants (app/schemas/roadmap.py)
 
@@ -260,8 +260,16 @@ class Milestone(BaseModel):
 class ProjectRoadmap(BaseModel):
     roadmap_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     project_title: str = Field(..., min_length=5, max_length=100)
-    domain: str = Field(...)
+    domain: str = Field(..., min_length=3, max_length=100)
     milestones: list[Milestone] = Field(..., min_length=5, max_length=5)
+
+    @field_validator("milestones")
+    @classmethod
+    def validate_sequential_stages(cls, v: list[Milestone]) -> list[Milestone]:
+        stages = [m.stage for m in v]
+        if stages != [1, 2, 3, 4, 5]:
+            raise ValueError(f"Milestones must strictly contain stages 1 through 5 in order. Received: {stages}")
+        return v
 ```
 
 ### 3.3 Interface & Method Signature
@@ -271,12 +279,17 @@ from app.schemas.roadmap import RoadmapRequest, ProjectRoadmap
 from app.services.search.hybrid_search import ScoredChunk
 
 class RoadmapGenerator:
-    def __init__(self, api_key: str, model_name: str = "llama-3.1-8b-instant") -> None:
-        """Initializes Groq client patched with Instructor for schema validation."""
+    def __init__(
+        self,
+        api_key: str | None = None,
+        model_name: str | None = None,
+        temperature: float = 0.2,
+    ) -> None:
+        """Initializes Groq client patched with Instructor in Mode.JSON for schema validation."""
         ...
 
     def generate(self, request: RoadmapRequest, context_chunks: list[ScoredChunk]) -> ProjectRoadmap:
-        """Invokes LLM with system prompt + context, retrying up to 2 times on validation errors."""
+        """Invokes LLM with system prompt + context, enforcing max_tokens=4096 and retrying up to 2 times on validation errors."""
         ...
 ```
 
@@ -330,29 +343,27 @@ The Circuit Breaker wraps calls to the external Groq inference engine to prevent
 ### 5.2 Interface & Method Signatures
 
 ```python
-from typing import Callable, TypeVar, Any
-from pathlib import Path
+class FallbackProvider:
+    def __init__(self, fallback_dir: Path | None = None) -> None:
+        """Loads and caches verified static JSON blueprints from disk at boot time."""
+        ...
 
-T = TypeVar("T")
-
-class CircuitBreakerOpenException(Exception):
-    """Raised when an external call is rejected because the circuit is OPEN."""
-    pass
+    def get_static_roadmap(self, role: str) -> ProjectRoadmap:
+        """Resolves target role to a matching in-memory static fallback blueprint."""
+        ...
 
 class CircuitBreaker:
     def __init__(self, failure_threshold: int = 3, recovery_timeout_sec: float = 45.0) -> None:
         ...
 
-    def execute(self, func: Callable[..., T], fallback_func: Callable[..., T], *args: Any, **kwargs: Any) -> T:
-        """Executes func if CLOSED/HALF-OPEN. If OPEN or fails, calls fallback_func."""
-        ...
-
-class FallbackProvider:
-    def __init__(self, fallback_dir: Path = Path("data/fallbacks")) -> None:
-        ...
-
-    def get_static_roadmap(self, role: str) -> ProjectRoadmap:
-        """Loads pre-indexed static JSON roadmap from disk matching target role."""
+    def execute(
+        self,
+        func: Callable[..., T],
+        fallback_func: Callable[..., T],
+        *args: Any,
+        **kwargs: Any,
+    ) -> T:
+        """Executes func if CLOSED/HALF-OPEN. If OPEN or on error, executes fallback_func in <= 50ms."""
         ...
 ```
 

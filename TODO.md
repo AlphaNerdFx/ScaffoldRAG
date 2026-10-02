@@ -92,29 +92,39 @@
 
 *Goal: Synthesize retrieved blueprints into a strongly typed 5-stage roadmap via Groq.*
 
-- [ ] **Task 3.1: Pydantic Schema Definitions**
+- [X] **Task 3.1: Pydantic Schema Definitions & Contract Tests**
 
-  - Define `app/schemas/roadmap.py` containing:
-    - `RoadmapRequest` (Target role, domain, current skills).
-    - `Milestone` (Stage 1-5, name, technologies, architectural justification, tradeoff introduced, acceptance criteria).
-    - `ProjectRoadmap` (Roadmap ID, title, domain, milestones list).
-  - Add Pydantic field validators ensuring that `tradeoff` contains concrete architectural drawbacks (rejecting phrases like "none" or "makes it faster") [Certain].
-  - *DoD:* Pydantic raises `ValidationError` when fed invalid or trivial tradeoff strings [Certain].
-- [ ] **Task 3.2: Instructor + Groq Structured Inference Client**
+  - Define `app/schemas/roadmap.py` matching `docs/SPEC_V1.md` Section 3.2:
+    - `RoadmapRequest` (`target_role`, `domain_interest`, `current_skills`).
+    - `Milestone` (`stage`, `name`, `tools_introduced`, `why_added`, `tradeoff`, `verification_metric`).
+    - `ProjectRoadmap` (`roadmap_id`, `project_title`, `domain`, `milestones`).
+  - Implement `@field_validator("tradeoff")` on `Milestone` asserting explicit engineering drawbacks and rejecting terms: `["none", "makes it better", "faster", "easy"]` [Certain].
+  - Enforce list invariant on `ProjectRoadmap`: `milestones` must contain exactly 5 stages [Certain].
+  - Create `tests/test_specification_contract.py` asserting schema rejection on non-compliant payloads.
+  - *DoD:* Running `pytest tests/test_specification_contract.py` passes with 100% compliance against the specification contract [Certain].
+- [X] **Task 3.2: Instructor + Groq Structured Inference Client**
 
-  - Implement `app/services/generator.py`.
-  - Initialize `Instructor` client patching the `groq.Groq` SDK client with `llama-3.1-8b-instant` [Certain].
-  - Construct a system prompt strictly grounding the model in the retrieved context:
+  - Implement `app/services/generator.py` containing `RoadmapGenerator`.
+  - Initialize `Instructor` client patching `groq.Groq` targeting `llama-3.1-8b-instant` using `mode=instructor.Mode.TOOLS` or `JSON` depending on SDK compatibility [Certain].
+  - Construct system prompt grounding output strictly in the retrieved context:
     > "You are a Principal Solutions Architect. Using ONLY the architecture patterns provided in the context below, create an incremental 5-stage scaffolding plan for the user's project idea. You must output data that strictly validates against the provided JSON schema."
     >
-  - Configure `max_retries=2` to handle automated repair of schema violations [Certain].
-  - *DoD:* Running the generation function returns an instantiated, validated `ProjectRoadmap` Python object [Certain].
-- [ ] **Task 3.3: Circuit Breaker & Fallback System**
+  - Configure `max_retries=2` to ensure automated reflection on Pydantic validation errors [Certain].
+  - Implement unit tests with deterministic transport mocking and an opt-in live integration test (`@pytest.mark.integration`).
+  - *DoD:* Generator takes top 4 retrieved chunks and outputs a validated, instantiated `ProjectRoadmap` object [Certain].
+- [X] **Task 3.3: Circuit Breaker & Fallback System**
 
-  - Implement `app/services/circuit_breaker.py` with states: `CLOSED`, `OPEN`, `HALF-OPEN` [Certain].
-  - Trip breaker open if upstream Groq API throws 3 consecutive HTTP 429/500 errors [Certain].
-  - When open, immediately serve pre-computed fallback roadmaps from disk (`data/fallbacks/`) without calling the external network [Certain].
-  - *DoD:* Integration test simulating network outage verifies that client requests receive valid fallback roadmaps within 50ms rather than hanging or timing out [Certain].
+  - Implement `app/core/circuit_breaker.py` containing `CircuitBreaker` and `FallbackProvider` matching `docs/SPEC_V1.md` Section 5.2:
+    - Finite State Machine: `CLOSED`, `OPEN`, `HALF-OPEN` [Certain].
+    - Trip threshold: 3 consecutive HTTP 429/500/timeout exceptions from upstream [Certain].
+    - Recovery timeout: 45.0 seconds before transitioning from `OPEN` to `HALF-OPEN` [Certain].
+  - Author and validate 3 production fallback roadmaps in `data/fallbacks/`:
+    - `mle_roadmap.json` (Machine Learning Engineer)
+    - `de_roadmap.json` (Data Engineer)
+    - `backend_ai_roadmap.json` (Backend AI Engineer)
+  - Assert that all fallback JSON files strictly parse into `ProjectRoadmap` instances at import time [Certain].
+  - Implement unit tests verifying state transitions and asserting fallback resolution within $\le 50\text{ms}$ when open [Certain].
+  - *DoD:* Test harness simulates 3 consecutive upstream HTTP failures; circuit transitions to `OPEN` and serves static role-matched fallback JSON from disk in $< 50\text{ms}$ without network egress [Certain].
 
 ---
 

@@ -66,3 +66,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Decoupled Qdrant server-side RRF to client-side rank accumulation to maintain compatibility with Qdrant 1.9.2 and avoid double-index traversals.
 - Upgraded `fastembed` dependency to locked pin `0.4.2` in `pyproject.toml`.
 - Calibrated Reranker SLA bound in `docs/SPEC_V1.md` from 300ms to 450ms to reflect virtualized multi-core WSL2 execution.
+
+## [0.4.0] - 2026-10-02
+
+### Added
+
+- Strongly typed Pydantic V2 schema contracts in `app/schemas/roadmap.py` (`RoadmapRequest`, `Milestone`, `ProjectRoadmap`) with strict architectural tradeoff validation.
+- Subsystem 3 generation client `app/services/generator.py` wrapping Groq `openai/gpt-oss-20b` via Instructor using `Mode.JSON` with automated 2-retry self-reflection.
+- SRE Circuit Breaker in `app/core/circuit_breaker.py` implementing a 3-state finite state machine (`CLOSED`, `OPEN`, `HALF-OPEN`) tripping after 3 consecutive failures.
+- Static fallback repository in `data/fallbacks/` with verified blueprints for Machine Learning Engineers, Data Engineers, and Backend AI Engineers.
+- Complete contract and state verification suites (`tests/test_specification_contract.py`, `tests/test_generator.py`, `tests/test_circuit_breaker.py`).
+
+### Changed
+
+- Migrated default inference model from deprecated `llama-3.1-8b-instant` to active `openai/gpt-oss-20b` in `app/core/config.py`.
+- Switched Instructor extraction strategy from `Mode.TOOLS` to `Mode.JSON` to support native Groq constrained JSON decoding.
+- Allocated explicit completion token ceiling (`max_tokens=4096`) to eliminate stream truncation exceptions on multi-stage payloads.

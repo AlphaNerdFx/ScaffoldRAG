@@ -21,7 +21,7 @@
 * [Certain] **Zero-Malformed-Output Rate:** 100% of API responses must pass Pydantic schema validation before reaching the client; 0 raw text or broken JSON payloads.
 * [Likely] **P95 Latency:** Total request-to-response cycle $\le$ 3,500ms (Hybrid Retrieval $\le$ 400ms, Reranking $\le$ 600ms, LLM Generation $\le$ 2,500ms).
 * [Likely] **Retrieval Precision (Ragas Context Precision):** $\ge$ 0.85 across test benchmarks.
-* [Certain] **Unit Economics:** Cost per generated roadmap $\le$ $0.015 using hosted models, or $0.00 using local open-weight inference (e.g., Llama 3 8B via Ollama).
+* [Certain] **Unit Economics:** Cost per generated roadmap $\le$ $0.015 using hosted models (e.g., `openai/gpt-oss-20b` via Groq LPU), or $0.00 using local open-weight inference (e.g., Llama 3 8B via Ollama).
 * [Likely] **Actionability Rate:** $\ge$ 80% of student testers successfully execute Milestone 1 within 60 minutes of generation.
 
 ---
@@ -137,21 +137,18 @@ System Handling: System drops the Cross-Encoder step via a timeout wrapper and f
 Scenario: Commercial LLM API fails or rate-limits the backend.
 System Handling: Circuit breaker pattern triggers after 3 consecutive failures. System switches to a local Ollama instance (fallback model: llama3:8b) or returns a pre-computed static blueprint template matching the target role [Certain].
 
-### 5.4 Schema Validation Failure
+### 5.4 Schema Validation Failure & Token Exhaustion
 
-Scenario: LLM produces invalid JSON or skips required fields.
-System Handling: Instructor library retries the model up to 2 times, feeding back the specific Pydantic error message. If it fails a 3rd time, the API returns HTTP 502: "Generation validation failed. Upstream model output non-compliant." [Certain].
+Scenario: LLM produces invalid JSON, skips required fields, or experiences token truncation.
+System Handling: The generation request explicitly provisions `max_tokens=4096` to prevent `IncompleteOutputException`. Instructor retries the model up to 2 times, feeding back specific Pydantic `ValidationError` messages. If validation fails after 2 retries, the domain layer raises an exception, which the Circuit Breaker intercepts to serve a static fallback or the API layer maps to HTTP 502: "Generation validation failed. Upstream model output non-compliant." [Certain].
 
 ## 6. Architecture Decisions & Technical Resolutions (ADR Log)
 
 ### ADR-01: Hybrid Inference Topology (Local Vector Store + Remote LPU API)
 
-* **Status:** Resolved / Implemented
-* **Decision:** Decouple document retrieval from generative inference. The vector store (Qdrant) and the embedding/reranker pipelines will run locally, while LLM text generation is offloaded to a high-speed external inference provider (Groq running `llama-3.1-8b-instant`) [Certain].
-* **Justification:** An 8 GB VRAM budget on a mobile RTX 4060 cannot concurrently host an 8B instruction model, an embedding model, a Cross-Encoder reranker, and operating system overhead without triggering CUDA Out-Of-Memory exceptions or system RAM offloading (which degrades generation latency to over 15 seconds) [Certain]. Offloading to Groq ensures sub-second generation times at $0.00 cost under free-tier limits (30 Requests/Min) [Certain].
-* **System Constraints:**
-  * The backend must use an abstract client interface (such as `Instructor` wrapped over `LiteLLM`) so toggling between `groq` and local `ollama` requires only an environment variable change (`LLM_BACKEND=groq` vs. `LLM_BACKEND=ollama`) [Certain].
-  * Local Ollama (`llama3:8b`) serves strictly as an offline circuit-breaker fallback [Likely].
+* **Status:** Resolved / Implemented / Calibrated
+* **Decision:** Decouple document retrieval from generative inference. The vector store (Qdrant) and the embedding/reranker pipelines will run locally, while LLM text generation is offloaded to a high-speed external inference provider (Groq running `openai/gpt-oss-20b`) [Certain].
+* **Justification:** An 8 GB VRAM budget on a mobile RTX 4060 cannot concurrently host an 8B/20B instruction model, an embedding model, a Cross-Encoder reranker, and operating system overhead without triggering CUDA Out-Of-Memory exceptions or system RAM offloading (which degrades generation latency to over 15 seconds) [Certain]. Offloading to Groq ensures sub-second generation times at $0.00 cost under free-tier limits [Certain].
 
 ---
 
@@ -241,6 +238,14 @@ Deploy `BAAI/bge-small-en-v1.5` using the **FastEmbed** runtime (ONNX engine) [C
 * **Decision:** Implement Reciprocal Rank Fusion ($k=60$) in application memory (`app/services/search/hybrid_search.py`) over parallel gRPC calls (`client.search`), rejecting Qdrant server-side RRF (`models.FusionQuery`).
 * **Justification:** Qdrant's server-side Universal Query API (`query_points` with RRF) requires Qdrant $\ge 1.10.0$. Running against active container version 1.9.2 throws `grpc.StatusCode.UNIMPLEMENTED`. Furthermore, server-side RRF overwrites raw cosine distances with rank fractions ($1/(60+\text{rank})$), forcing an expensive secondary dense traversal just to evaluate the OOD gate. Client-side RRF executes in $<2\text{ms}$ in Python, works across all Qdrant versions, and preserves unpolluted scores for telemetry.
 
+---
+
+### ADR-08: Constrained JSON Decoding over Tool Calling for Groq Inference
+
+* **Status:** Resolved / Enforced
+* **Decision:** Configure Instructor to use `mode=instructor.Mode.JSON` (native constrained decoding via `response_format={"type": "json_object"}`) rather than `mode=instructor.Mode.TOOLS` when dispatching requests to Groq running `openai/gpt-oss-20b` [Certain].
+* **Justification:** Groq's API gateway enforces `tool_choice="required"` on function-calling models. When using `openai/gpt-oss-20b`, the model does not emit function-calling tokens, causing Groq's gateway to abort with HTTP 400 `tool_use_failed`. Switching to `Mode.JSON` injects the Pydantic JSON schema directly into prompt instructions and leverages Groq's native JSON constrained decoding, allowing reliable schema enforcement without gateway rejection [Certain].
+* **Consequences:** Eliminates upstream 400 gateway errors, requires explicit `max_tokens=4096` provisioning to avoid output truncation, and mandates negative prompt constraints to enforce field-level Pydantic validators [Certain].
 ---
 
 ## Appendix A: Metric Threshold Calibration & Validation Methodology
