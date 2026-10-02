@@ -1,0 +1,47 @@
+{
+  "roadmap_id": "00000000-0000-0000-0000-000000000001",
+  "project_title": "Production Machine Learning Search & Retrieval Engine",
+  "domain": "E-commerce Search & Discovery",
+  "milestones": [
+    {
+      "stage": 1,
+      "name": "Dense Semantic Retrieval Baseline",
+      "tools_introduced": ["FastAPI", "Qdrant", "FastEmbed", "bge-small-en-v1.5"],
+      "why_added": "Establishes a baseline semantic search pipeline with low architectural complexity.",
+      "tradeoff": "High semantic recall, but fails on exact keyword or part-number SKU queries.",
+      "verification_metric": "MRR > 0.60 on a 50-query golden dataset with P95 latency <= 100ms."
+    },
+    {
+      "stage": 2,
+      "name": "Sparse BM25 Inverted Index Integration",
+      "tools_introduced": ["Qdrant BM25 Engine", "Tokenizer Middleware"],
+      "why_added": "Captures exact lexical matches and specific entity keywords missed by embeddings.",
+      "tradeoff": "Requires maintaining dual vector schemas and doubles inverted index storage overhead.",
+      "verification_metric": "Exact keyword recall reaches 100% on domain catalog SKUs."
+    },
+    {
+      "stage": 3,
+      "name": "Client-Side Reciprocal Rank Fusion",
+      "tools_introduced": ["Python RRF Merger", "gRPC Client Pool"],
+      "why_added": "Fuses dense and sparse rank distributions in application memory without score calibration.",
+      "tradeoff": "Rank-based heuristic accumulation discards relative score magnitude distances.",
+      "verification_metric": "MRR improves by +0.12 over dense search with fusion overhead <= 5ms."
+    },
+    {
+      "stage": 4,
+      "name": "Cross-Encoder Attention Reranking",
+      "tools_introduced": ["FastEmbed ONNX", "ms-marco-MiniLM-L-6-v2"],
+      "why_added": "Applies full cross-attention scoring across top 15 candidates to surface top 4 passages.",
+      "tradeoff": "Adds 350ms to 450ms CPU compute latency and requires sequence length bounding.",
+      "verification_metric": "Context Precision@4 >= 0.85 across evaluation benchmarks."
+    },
+    {
+      "stage": 5,
+      "name": "Resilient Production Deployment & Observability",
+      "tools_introduced": ["Docker Compose", "Prometheus", "FastAPI Middleware", "CircuitBreaker"],
+      "why_added": "Guarantees fault-tolerant serving and latency profiling under variable network loads.",
+      "tradeoff": "Introduces operational multi-service management complexity and metric export overhead.",
+      "verification_metric": "API achieves 99.9% availability with P95 latency <= 3500ms."
+    }
+  ]
+}

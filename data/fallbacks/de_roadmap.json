@@ -1,0 +1,47 @@
+{
+  "roadmap_id": "00000000-0000-0000-0000-000000000002",
+  "project_title": "Scalable Vector Ingestion & Batch Search Pipeline",
+  "domain": "Data Engineering & Analytics",
+  "milestones": [
+    {
+      "stage": 1,
+      "name": "Batch Document Processing Pipeline",
+      "tools_introduced": ["Polars", "PyArrow", "DuckDB"],
+      "why_added": "Enables high-throughput document transformation and memory-efficient batch ingestion.",
+      "tradeoff": "Lacks real-time indexing capabilities and requires bounded memory buffers.",
+      "verification_metric": "Processes 50k documents per minute with RAM usage bounded under 1 GB."
+    },
+    {
+      "stage": 2,
+      "name": "Partitioned Vector Database Ingestion",
+      "tools_introduced": ["Qdrant", "Docker Named Volumes", "gRPC Batch Upsert"],
+      "why_added": "Provides persistent vector storage with partitioned payload filtering.",
+      "tradeoff": "Disk write amplification during large batch indexing slows concurrent queries.",
+      "verification_metric": "Upserts 10k vectors in under 15 seconds over gRPC."
+    },
+    {
+      "stage": 3,
+      "name": "Asynchronous ETL Task Queue",
+      "tools_introduced": ["Redis", "Celery", "PostgreSQL"],
+      "why_added": "Decouples slow document embedding workers from user-facing API request cycles.",
+      "tradeoff": "Introduces eventual consistency and requires dead-letter queue monitoring.",
+      "verification_metric": "Zero task drops across 10,000 asynchronous ingestion jobs."
+    },
+    {
+      "stage": 4,
+      "name": "Automated Data Quality & Drift Validation",
+      "tools_introduced": ["Great Expectations", "Pytest", "Data Drift Sensors"],
+      "why_added": "Asserts schema integrity and vector dimensionality before writing to production indices.",
+      "tradeoff": "Adds 5% compute overhead to the ingestion pipeline execution time.",
+      "verification_metric": "Catches 100% of malformed payloads before database persistence."
+    },
+    {
+      "stage": 5,
+      "name": "Continuous Pipeline CI/CD & Infrastructure as Code",
+      "tools_introduced": ["GitHub Actions", "Docker Multi-stage Builds", "Terraform"],
+      "why_added": "Automates regression testing, image vulnerability scanning, and infrastructure setup.",
+      "tradeoff": "Increases pipeline configuration maintenance and CI run-minute consumption.",
+      "verification_metric": "Automated build and test suite completes in under 5 minutes."
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "roadmap_id": "00000000-0000-0000-0000-000000000003",
+  "project_title": "Production Async AI Microservice Architecture",
+  "domain": "Backend AI Services",
+  "milestones": [
+    {
+      "stage": 1,
+      "name": "Async FastAPI Service Skeleton",
+      "tools_introduced": ["FastAPI", "Uvicorn", "Pydantic V2"],
+      "why_added": "Establishes non-blocking asynchronous request handling with strict type contracts.",
+      "tradeoff": "Requires careful event loop management to prevent blocking I/O calls.",
+      "verification_metric": "Sustains 500 req/sec at < 20ms baseline endpoint latency."
+    },
+    {
+      "stage": 2,
+      "name": "Sub-Second Hybrid Retrieval Engine",
+      "tools_introduced": ["Qdrant Client", "FastEmbed ONNX", "RRF Merger"],
+      "why_added": "Implements local hybrid search without external API latency or licensing costs.",
+      "tradeoff": "Requires dedicated CPU thread allocation for local neural embeddings.",
+      "verification_metric": "Retrieval pipeline P95 latency remains under 450ms on CPU."
+    },
+    {
+      "stage": 3,
+      "name": "Distributed Redis Semantic Caching",
+      "tools_introduced": ["Redis", "Hiredis", "Hashing Middleware"],
+      "why_added": "Caches identical and high-similarity queries to bypass expensive retrieval runs.",
+      "tradeoff": "Cache invalidation complexity and risk of serving stale architectural roadmaps.",
+      "verification_metric": "Cache hit response latency drops to <= 15ms."
+    },
+    {
+      "stage": 4,
+      "name": "Circuit Breaker Fault Tolerance",
+      "tools_introduced": ["State Machine Breaker", "Static Disk Provider"],
+      "why_added": "Protects against downstream LLM outages by serving verified static blueprints.",
+      "tradeoff": "Requires managing static fallback data drift against evolving requirements.",
+      "verification_metric": "Degrades to static fallback in under 10ms upon upstream failure."
+    },
+    {
+      "stage": 5,
+      "name": "Structured Observability & OpenTelemetry",
+      "tools_introduced": ["OpenTelemetry", "Prometheus", "Structured JSON Logging"],
+      "why_added": "Provides distributed tracing and P95 latency breakdown across all subsystems.",
+      "tradeoff": "Adds minor CPU overhead for log formatting and metrics scraping.",
+      "verification_metric": "100% of production requests emit structured timing headers."
+    }
+  ]
+}

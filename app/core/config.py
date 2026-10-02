@@ -22,10 +22,10 @@ class Settings(BaseSettings):
         description="Groq Cloud API Key (must begin with 'gsk_')"
     )
     INFERENCE_MODEL: str = Field(
-        default="llama-3.1-8b-instant",
+        default="openai/gpt-oss-20b",
         description="Target LLM model identifier on Groq"
     )
-
+    
     # Qdrant Vector DB Configuration
     QDRANT_HOST: str = Field(default="127.0.0.1")
     QDRANT_PORT: int = Field(default=6333)
