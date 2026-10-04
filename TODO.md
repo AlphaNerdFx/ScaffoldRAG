@@ -132,26 +132,25 @@
 
 *Goal: Expose endpoints via FastAPI and provide an interactive testing client.*
 
-- [ ] **Task 4.1: FastAPI Route Handlers**
+- [X] **Task 4.1: FastAPI Route Handlers**
 
-  - Implement `app/api/v1/endpoints.py`:
-    - `POST /api/v1/roadmaps` (Executes OOD Gate $\rightarrow$ Hybrid Search $\rightarrow$ Reranker $\rightarrow$ Instructor Generation) [Certain].
-    - `GET /api/v1/roadmaps/{id}/export?format=markdown` (Converts roadmap JSON to a Markdown GitHub checklist) [Certain].
-    - `GET /health` (Verifies Qdrant connection and inference client readiness) [Certain].
-  - *DoD:* Automated integration test via `httpx.AsyncClient` executes the complete flow and asserts HTTP 200 with valid schema [Certain].
-- [ ] **Task 4.2: Telemetry & Latency Profiling Middleware**
+  - Implemented `app/api/v1/endpoints.py` with singleton dependency injection.
+  - Added `POST /api/v1/roadmaps`, `GET /api/v1/roadmaps/{id}/export?format=markdown`, and `GET /health`.
+  - Added `app/services/storage.py` (SQLite WAL repository) and `app/services/exporter.py` (Markdown checklist serializer).
+  - Added `app/api/v1/exceptions.py` mapping `OutOfDistributionError` to HTTP 422.
+  - Verified via `tests/test_api.py` with 8 passing tests.
+- [X] **Task 4.2: Telemetry & Latency Profiling Middleware**
 
-  - Implement `app/middleware/timing.py`.
-  - Log execution latency for each sub-component: `t_retrieval_ms`, `t_rerank_ms`, `t_generation_ms`, `t_total_ms` [Certain].
-  - Inject timing headers into API response: `X-Process-Time-Ms` [Certain].
-  - *DoD:* Terminal logs display a structured JSON log line for every request detailing latency per sub-system [Certain].
-- [ ] **Task 4.3: Minimal Streamlit UI**
+  - Implemented `app/middleware/timing.py` measuring component latencies: `t_ood_ms`, `t_retrieval_ms`, `t_rerank_ms`, `t_generation_ms`, and `t_total_ms`.
+  - Injected `X-Process-Time-Ms` response header.
+  - Added structured JSON logging to standard output.
+  - Verified via `tests/test_timing_middleware.py` with 2 passing tests.
+- [X] **Task 4.3: Minimal Streamlit UI**
 
-  - Create `frontend/app.py` using Streamlit.
-  - Provide input forms for: Target Role, Domain Interest, and Current Skills.
-  - Display the 5-stage roadmap as interactive expandable cards showing tools, justification, and tradeoffs.
-  - Provide a "Download GitHub Issue Checklist (.md)" button.
-  - *DoD:* Running `streamlit run frontend/app.py` provides a functional browser interface that successfully communicates with the FastAPI backend [Certain].
+  - Implemented `frontend/app.py` with parameter controls, 5-stage accordion cards, tradeoff views, and direct Markdown downloads.
+  - Enforced `st.session_state` guards to prevent accidental re-generation loops.
+  - Parameterized backend networking using `BACKEND_API_URL`.
+  - Verified full browser-to-backend communication.
 
 ---
 

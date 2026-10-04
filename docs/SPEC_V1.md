@@ -299,17 +299,55 @@ class RoadmapGenerator:
 
 ### 4.1 Route Declarations & HTTP Contracts (app/api/v1/endpoints.py)
 
-| **HTTP Method** | **Route Path**         | **Request Body** | **Response Body**          | **Status Codes** |
-| --------------------- | ---------------------------- | ---------------------- | -------------------------------- | ---------------------- |
-| POST                  | /api/v1/roadmaps             | RoadmapRequest (JSON)  | ProjectRoadmap (JSON)            | 200, 422, 502, 503     |
-| GET                   | /api/v1/roadmaps/{id}/export | None                   | Raw Text (text/markdown)         | 200, 404               |
-| GET                   | /health                      | None                   | {"status": "ok", "qdrant": bool} | 200, 503               |
+| HTTP Method | Route Path | Request Body | Response Body | Status Codes | Response Headers Contract |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| POST | `/api/v1/roadmaps` | RoadmapRequest (JSON) | ProjectRoadmap (JSON) | 200, 422, 502, 503 | `X-Process-Time-Ms`, `X-Fallback-Applied`, `X-Fallback-Reason` (optional) |
+| GET | `/api/v1/roadmaps/{id}/export?format=markdown` | None | Raw Text (`text/markdown`) | 200, 404, 422 | `Content-Type: text/markdown`, `X-Process-Time-Ms` |
+| GET | `/health` | None | `{"status": "healthy", "qdrant": bool}` | 200, 503 | `X-Process-Time-Ms` |
 
 ### 4.2 Latency Profiling Middleware (app/middleware/timing.py)
 
-- Injects X-Process-Time-Ms HTTP response header [Certain].
-- Formats structured log output for every request:
-  {"timestamp": "ISO8601", "path": "/api/v1/roadmaps", "t_ood_ms": 12, "t_search_ms": 45, "t_rerank_ms": 280, "t_gen_ms": 1950, "t_total_ms": 2287}
+- Injects `X-Process-Time-Ms` HTTP response header representing total request execution time in milliseconds.
+- Emits one structured JSON log line per request to standard output (`stdout`) via `LatencyProfilingMiddleware`:
+```json
+{
+  "timestamp": "2026-10-04T03:40:34.419870+00:00",
+  "method": "POST",
+  "path": "/api/v1/roadmaps",
+  "status_code": 200,
+  "client_ip": "127.0.0.1",
+  "t_ood_ms": 12.5,
+  "t_retrieval_ms": 45.2,
+  "t_rerank_ms": 380.1,
+  "t_generation_ms": 2480.0,
+  "t_total_ms": 2917.8
+}
+```
+
+### 4.3 Subsystem 4.3: Local Storage Repository (`app/services/storage.py`)
+
+- **Purpose:** Stores and retrieves generated roadmaps by their UUID so they can be exported without setting up an external database server.
+- **Engine:** Python's built-in `sqlite3` using Write-Ahead Logging (`PRAGMA journal_mode = WAL;`) and normal synchronization (`PRAGMA synchronous = NORMAL;`).
+- **File Location:** `data/roadmaps.db`.
+
+```python
+class RoadmapRepository(Protocol):
+    def save(self, roadmap: ProjectRoadmap) -> None: ...
+    def get_by_id(self, roadmap_id: str) -> ProjectRoadmap | None: ...
+
+class SQLiteRoadmapRepository:
+    def __init__(self, db_path: Path | str = "data/roadmaps.db") -> None: ...
+    def save(self, roadmap: ProjectRoadmap) -> None: ...
+    def get_by_id(self, roadmap_id: str) -> ProjectRoadmap | None: ...
+```
+
+### 4.4 Subsystem 4.4: Markdown Checklist Serializer (app/services/exporter.py)
+Purpose: Converts a validated ProjectRoadmap object into a GitHub-ready Markdown checklist.
+Formatting Rules:
+* Root title formatted as # {project_title} with metadata block.
+* Each milestone formatted as ## Stage {stage}: {name}.
+* Acceptance criteria formatted with unchecked interactive boxes:  - [ ] **Verification Metric:** {verification_metric}.
+* Explicit tradeoffs and technical justifications included beneath each stage.
 
 ---
 

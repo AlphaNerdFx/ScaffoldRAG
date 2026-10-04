@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "scaffold-rag"
-version = "0.2.0"
+version = "0.4.0"
 description = "Production-grade portfolio scaffolding engine using Hybrid RAG"
 authors = ["Youssef Larbi <yousseflarbiprofessional@gmail.com>"]
 readme = "README.md"

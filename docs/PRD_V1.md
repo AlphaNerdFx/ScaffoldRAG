@@ -57,14 +57,19 @@
 
 ## 3. Scope: V1 vs. Out-of-Scope
 
-| In-Scope (Ships in V1)                                                | Out-of-Scope (Non-Goals for V1)                               |
-| :-------------------------------------------------------------------- | :------------------------------------------------------------ |
-| Curated corpus of 15 modular engineering blueprints (Markdown).       | User accounts, authentication, or profile history dashboards. |
-| Hybrid search: BM25 (sparse) +`BAAI/bge-small-en-v1.5` (dense).     | Automated GitHub repo static analysis / code auditing.        |
-| Reciprocal Rank Fusion (RRF) algorithm (k=60).                        | Automated code grading via dynamic test runners / sandboxes.  |
-| Cross-Encoder reranking (`cross-encoder/ms-marco-MiniLM-L-6-v2`).   | Multi-agent autonomous debate loops.                          |
-| Pydantic schema enforcement via`Instructor`.                        | Paid monetization or payment gateway integration.             |
-| Single-page UI (Streamlit or lightweight React) + REST API (FastAPI). | Real-time job board scraping or dynamic market weighting.     |
+| In-Scope (Ships in V1)                                                | Out-of-Scope (Non-Goals for V1)                                                                                                                                                                                                                 |
+| :-------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Curated corpus of 15 modular engineering blueprints (Markdown).       | User accounts, authentication, profile history dashboards, and external multi-tenant database servers (e.g., PostgreSQL). Ephemeral, single-file embedded storage (SQLite in WAL mode) is in-scope strictly to support roadmap exports (US-3).  |
+| Hybrid search: BM25 (sparse) +`BAAI/bge-small-en-v1.5` (dense).     | Automated GitHub repo static analysis / code auditing.                                                                                                                                                                                          |
+| Reciprocal Rank Fusion (RRF) algorithm (k=60).                        | Automated code grading via dynamic test runners / sandboxes.                                                                                                                                                                                    |
+| Cross-Encoder reranking (`cross-encoder/ms-marco-MiniLM-L-6-v2`).   | Multi-agent autonomous debate loops.                                                                                                                                                                                                            |
+| Pydantic schema enforcement via`Instructor`.                        | Paid monetization or payment gateway integration.                                                                                                                                                                                               |
+| Single-page UI (Streamlit or lightweight React) + REST API (FastAPI). | Real-time job board scraping or dynamic market weighting.                                                                                                                                                                                       |
+
+* ```
+  User accounts, authentication, profile history dashboards, and external multi-tenant database servers (e.g., PostgreSQL). Ephemeral, single-file embedded storage (SQLite in WAL mode) is in-scope strictly to support roadmap exports (US-3).
+  ```
+* 
 
 ---
 
@@ -135,7 +140,7 @@ System Handling: System drops the Cross-Encoder step via a timeout wrapper and f
 ### 5.3 Downstream LLM Provider Outage or Rate Limit (HTTP 429/500)
 
 Scenario: Commercial LLM API fails or rate-limits the backend.
-System Handling: Circuit breaker pattern triggers after 3 consecutive failures. System switches to a local Ollama instance (fallback model: llama3:8b) or returns a pre-computed static blueprint template matching the target role [Certain].
+System Handling: Circuit breaker pattern triggers after 3 consecutive failures. When open or degraded, the system returns a pre-computed, verified static blueprint template from disk matching the target role. The API returns an HTTP 200 status code with explicit response headers: 'X-Fallback-Applied: true' and 'X-Fallback-Reason: upstream_failure_or_load'.
 
 ### 5.4 Schema Validation Failure & Token Exhaustion
 
@@ -246,6 +251,23 @@ Deploy `BAAI/bge-small-en-v1.5` using the **FastEmbed** runtime (ONNX engine) [C
 * **Decision:** Configure Instructor to use `mode=instructor.Mode.JSON` (native constrained decoding via `response_format={"type": "json_object"}`) rather than `mode=instructor.Mode.TOOLS` when dispatching requests to Groq running `openai/gpt-oss-20b` [Certain].
 * **Justification:** Groq's API gateway enforces `tool_choice="required"` on function-calling models. When using `openai/gpt-oss-20b`, the model does not emit function-calling tokens, causing Groq's gateway to abort with HTTP 400 `tool_use_failed`. Switching to `Mode.JSON` injects the Pydantic JSON schema directly into prompt instructions and leverages Groq's native JSON constrained decoding, allowing reliable schema enforcement without gateway rejection [Certain].
 * **Consequences:** Eliminates upstream 400 gateway errors, requires explicit `max_tokens=4096` provisioning to avoid output truncation, and mandates negative prompt constraints to enforce field-level Pydantic validators [Certain].
+
+---
+
+### ADR-09: Embedded SQLite for Ephemeral Roadmap Export Persistence
+
+* **Status:** Resolved / Enforced
+* **Decision:** Implement an embedded SQLite database running in Write-Ahead Logging (WAL) mode (`data/roadmaps.db`) to store generated roadmaps, rejecting external database servers (like PostgreSQL) and pure in-memory dictionaries.
+* **Justification:** US-3 requires retrieving a generated roadmap by its unique ID to export it as a Markdown file. Storing roadmaps in Python application memory causes memory leaks and loses data whenever the server restarts. Deploying PostgreSQL requires adding another background service and complex setup tools, breaking our rule to keep the container under 400 MB. SQLite is built directly into Python, adds zero installation weight, and handles concurrent reads and writes safely.
+
+---
+
+### ADR-10: Persistent Singleton Injection for Machine Learning Engines
+
+* **Status:** Resolved / Enforced
+* **Decision:** Instantiate AI and search components (`OODGate`, `HybridSearchEngine`, `CrossEncoderReranker`, `RoadmapGenerator`, and `QdrantClient`) once as long-lived singletons injected via FastAPI dependencies (`Depends`), strictly prohibiting creating new instances inside route functions.
+* **Justification:** Creating these classes inside the route handler caused Python to reload model files from disk, re-create neural network sessions, and spawn new CPU worker threads on every single request. This slowed down response times to over 8,000ms–12,000ms, severely breaking the PRD latency limit of 3,500ms. Reusing a single shared instance throughout the application lifecycle dropped component setup overhead to zero, keeping total request latency within the 3,500ms target.
+
 ---
 
 ## Appendix A: Metric Threshold Calibration & Validation Methodology
