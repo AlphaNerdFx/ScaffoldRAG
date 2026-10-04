@@ -1,0 +1,81 @@
+name: CI/CD Quality & Evaluation Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      qdrant:
+        image: qdrant/qdrant:v1.9.2
+        ports:
+          - 6333:6333
+          - 6334:6334
+        options: >-
+          --health-cmd "curl -s http://localhost:6333/readyz || exit 1"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Install Dependencies
+        run: |
+          poetry config virtualenvs.in-project true
+          poetry install --no-interaction
+
+      - name: Gate 1 - Code Quality Checks (Ruff)
+        run: |
+          poetry run ruff check .
+          poetry run ruff format --check .
+
+      - name: Gate 2 - Static Type Checking (Mypy)
+        run: |
+          poetry run mypy app/
+
+      - name: Gate 3 - Ingest Knowledge Base into Ephemeral Qdrant
+        env:
+          QDRANT_HOST: localhost
+          QDRANT_GRPC_PORT: 6334
+          QDRANT_COLLECTION_NAME: engineering_blueprints
+        run: |
+          poetry run python scripts/ingest_corpus.py
+
+      - name: Gate 4 - Unit & Integration Tests (Coverage >= 85%)
+        env:
+          QDRANT_HOST: localhost
+          QDRANT_GRPC_PORT: 6334
+          QDRANT_COLLECTION_NAME: engineering_blueprints
+          GROQ_API_KEY: "gsk_ci_test_dummy_key_0000000000000000000000"
+        run: |
+          poetry run pytest --cov=app --cov-report=term-missing --cov-fail-under=85 tests/
+
+      - name: Gate 5 - Context Precision Retrieval Benchmark (Precision >= 0.85)
+        env:
+          QDRANT_HOST: localhost
+          QDRANT_GRPC_PORT: 6334
+          QDRANT_COLLECTION_NAME: engineering_blueprints
+        run: |
+          poetry run pytest tests/benchmarks/test_retrieval_precision.py -v
