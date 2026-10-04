@@ -1,0 +1,362 @@
+[
+  {
+    "query_id": "MLE-001",
+    "query": "How do I build a dense vector search baseline with FastEmbed and Qdrant?",
+    "target_role": "Machine Learning Engineer",
+    "expected_blueprint_file": "01_in_memory_dense_retrieval.md",
+    "expected_module_name": "Naive Dense Vector Retrieval Baseline",
+    "expected_chunk_ids": [
+      "694f69e4-edd6-57b4-a48c-94c87835e94c",
+      "f6134bbe-cb1c-54ff-8ffc-55670ac51b21",
+      "92f4bdb3-0f9b-5a93-9ef2-8ad46822403d"
+    ]
+  },
+  {
+    "query_id": "MLE-008",
+    "query": "Semantic dense search using BGE Small embeddings and cosine similarity.",
+    "target_role": "Machine Learning Engineer",
+    "expected_blueprint_file": "01_in_memory_dense_retrieval.md",
+    "expected_module_name": "Naive Dense Vector Retrieval Baseline",
+    "expected_chunk_ids": [
+      "694f69e4-edd6-57b4-a48c-94c87835e94c",
+      "f6134bbe-cb1c-54ff-8ffc-55670ac51b21",
+      "92f4bdb3-0f9b-5a93-9ef2-8ad46822403d"
+    ]
+  },
+  {
+    "query_id": "MLE-002",
+    "query": "Implement lexical keyword matching using BM25 sparse vectors in Qdrant.",
+    "target_role": "Machine Learning Engineer",
+    "expected_blueprint_file": "02_sparse_bm25_indexing.md",
+    "expected_module_name": "Sparse BM25 Inverted Index Retrieval",
+    "expected_chunk_ids": [
+      "1d6dd9e1-7023-5d8c-9150-17c12de33e81",
+      "eeb4c485-91af-56c0-9c09-51e3516c3d70",
+      "9a7cee1d-f0f0-57e6-b19e-f289ced4e343"
+    ]
+  },
+  {
+    "query_id": "MLE-009",
+    "query": "Exact keyword matching failure modes in dense vector stores solved by BM25.",
+    "target_role": "Machine Learning Engineer",
+    "expected_blueprint_file": "02_sparse_bm25_indexing.md",
+    "expected_module_name": "Sparse BM25 Inverted Index Retrieval",
+    "expected_chunk_ids": [
+      "1d6dd9e1-7023-5d8c-9150-17c12de33e81",
+      "eeb4c485-91af-56c0-9c09-51e3516c3d70",
+      "9a7cee1d-f0f0-57e6-b19e-f289ced4e343"
+    ]
+  },
+  {
+    "query_id": "MLE-003",
+    "query": "How to merge dense vector hits and BM25 sparse rankings using Reciprocal Rank Fusion k=60?",
+    "target_role": "Machine Learning Engineer",
+    "expected_blueprint_file": "03_reciprocal_rank_fusion.md",
+    "expected_module_name": "Reciprocal Rank Fusion Hybrid Search",
+    "expected_chunk_ids": [
+      "981eef42-ef85-5912-99a7-ee981b8f282a",
+      "24a13139-b7b0-58c3-b5c2-660e4ee2692a",
+      "71bade6b-574d-5abc-a127-85865070e5d2"
+    ]
+  },
+  {
+    "query_id": "MLE-010",
+    "query": "Combining vector similarity scores with inverted index ranks without normal distribution assumptions.",
+    "target_role": "Machine Learning Engineer",
+    "expected_blueprint_file": "03_reciprocal_rank_fusion.md",
+    "expected_module_name": "Reciprocal Rank Fusion Hybrid Search",
+    "expected_chunk_ids": [
+      "981eef42-ef85-5912-99a7-ee981b8f282a",
+      "24a13139-b7b0-58c3-b5c2-660e4ee2692a",
+      "71bade6b-574d-5abc-a127-85865070e5d2"
+    ]
+  },
+  {
+    "query_id": "MLE-004",
+    "query": "Cross-Encoder re-ranking with ms-marco-MiniLM-L-6-v2 on CPU under latency SLA.",
+    "target_role": "Machine Learning Engineer",
+    "expected_blueprint_file": "04_cross_encoder_reranking.md",
+    "expected_module_name": "Two-Stage Cross-Encoder Reranking",
+    "expected_chunk_ids": [
+      "f3d1bcd6-7ea6-55ce-adac-383cc05c410d",
+      "a1795750-56d8-540b-af17-9f28eabbbeb4",
+      "7f8170cb-a68f-5c79-8564-2aee2ddd43af"
+    ]
+  },
+  {
+    "query_id": "MLE-011",
+    "query": "Cross-attention transformer scoring over top 15 retrieved candidate passages.",
+    "target_role": "Machine Learning Engineer",
+    "expected_blueprint_file": "04_cross_encoder_reranking.md",
+    "expected_module_name": "Two-Stage Cross-Encoder Reranking",
+    "expected_chunk_ids": [
+      "f3d1bcd6-7ea6-55ce-adac-383cc05c410d",
+      "a1795750-56d8-540b-af17-9f28eabbbeb4",
+      "7f8170cb-a68f-5c79-8564-2aee2ddd43af"
+    ]
+  },
+  {
+    "query_id": "MLE-005",
+    "query": "Evaluating retrieval precision and context recall with RAGAS framework.",
+    "target_role": "Machine Learning Engineer",
+    "expected_blueprint_file": "05_ragas_evaluation_framework.md",
+    "expected_module_name": "Automated Ragas Evaluation Pipeline",
+    "expected_chunk_ids": [
+      "b15ab9af-1428-5c6c-bbe5-e95d79eb1237",
+      "26a1dfc5-dbea-55c5-bdc2-9e9a7861eafb",
+      "f6da1b50-d9f1-5163-a964-447fb0d889df"
+    ]
+  },
+  {
+    "query_id": "MLE-012",
+    "query": "Continuous integration test asserting retrieval context precision at K equals 4.",
+    "target_role": "Machine Learning Engineer",
+    "expected_blueprint_file": "05_ragas_evaluation_framework.md",
+    "expected_module_name": "Automated Ragas Evaluation Pipeline",
+    "expected_chunk_ids": [
+      "b15ab9af-1428-5c6c-bbe5-e95d79eb1237",
+      "26a1dfc5-dbea-55c5-bdc2-9e9a7861eafb",
+      "f6da1b50-d9f1-5163-a964-447fb0d889df"
+    ]
+  },
+  {
+    "query_id": "MLE-006",
+    "query": "Constrained JSON decoding with Instructor and Groq LPU inference.",
+    "target_role": "Backend AI Engineer",
+    "expected_blueprint_file": "06_structured_outputs_instructor.md",
+    "expected_module_name": "Structured JSON Extraction with Instructor and Pydantic",
+    "expected_chunk_ids": [
+      "90cc88f6-0299-5bf6-bd13-cb6af29e2100",
+      "821f974e-a5a9-5046-84be-922dd9dc5c5d",
+      "ac6b75d1-fc84-5298-bfd9-18bf375bb3c5"
+    ]
+  },
+  {
+    "query_id": "BAI-001",
+    "query": "Enforcing sequential milestone stages in Pydantic V2 models via Instructor.",
+    "target_role": "Backend AI Engineer",
+    "expected_blueprint_file": "06_structured_outputs_instructor.md",
+    "expected_module_name": "Structured JSON Extraction with Instructor and Pydantic",
+    "expected_chunk_ids": [
+      "90cc88f6-0299-5bf6-bd13-cb6af29e2100",
+      "821f974e-a5a9-5046-84be-922dd9dc5c5d",
+      "ac6b75d1-fc84-5298-bfd9-18bf375bb3c5"
+    ]
+  },
+  {
+    "query_id": "MLE-007",
+    "query": "Circuit breaker pattern with CLOSED OPEN HALF-OPEN state machine for LLM API resilience.",
+    "target_role": "Backend AI Engineer",
+    "expected_blueprint_file": "07_circuit_breaker_graceful_degradation.md",
+    "expected_module_name": "Circuit Breaker and Graceful Fallback Strategy",
+    "expected_chunk_ids": [
+      "32979376-ea0d-5621-8d82-50e20c5107b7",
+      "93e37575-e138-5198-a5e3-97729a3aa264",
+      "c9dd658a-bc80-50e9-b5b2-e5c87f103ae9"
+    ]
+  },
+  {
+    "query_id": "BAI-002",
+    "query": "Handling upstream LLM rate limits with fallback disk blueprints and fast failure.",
+    "target_role": "Backend AI Engineer",
+    "expected_blueprint_file": "07_circuit_breaker_graceful_degradation.md",
+    "expected_module_name": "Circuit Breaker and Graceful Fallback Strategy",
+    "expected_chunk_ids": [
+      "32979376-ea0d-5621-8d82-50e20c5107b7",
+      "93e37575-e138-5198-a5e3-97729a3aa264",
+      "c9dd658a-bc80-50e9-b5b2-e5c87f103ae9"
+    ]
+  },
+  {
+    "query_id": "DE-001",
+    "query": "FastAPI middleware injecting execution latency headers and structured JSON logs.",
+    "target_role": "Data Engineer",
+    "expected_blueprint_file": "08_fastapi_async_middleware_telemetry.md",
+    "expected_module_name": "Asynchronous FastAPI Telemetry and Request Tracing",
+    "expected_chunk_ids": [
+      "28eb7a01-a151-5fc7-bf15-87128ef7d172",
+      "3b92d7e2-170c-5f48-a464-5e68e6c55710",
+      "54766bf1-796a-52ca-aa0b-7d4b2dc4dec8"
+    ]
+  },
+  {
+    "query_id": "BAI-003",
+    "query": "Sub-millisecond latency profiling middleware for ASGI request pipelines.",
+    "target_role": "Backend AI Engineer",
+    "expected_blueprint_file": "08_fastapi_async_middleware_telemetry.md",
+    "expected_module_name": "Asynchronous FastAPI Telemetry and Request Tracing",
+    "expected_chunk_ids": [
+      "28eb7a01-a151-5fc7-bf15-87128ef7d172",
+      "3b92d7e2-170c-5f48-a464-5e68e6c55710",
+      "54766bf1-796a-52ca-aa0b-7d4b2dc4dec8"
+    ]
+  },
+  {
+    "query_id": "DE-002",
+    "query": "In-memory caching layer with Redis to bypass vector similarity lookups.",
+    "target_role": "Data Engineer",
+    "expected_blueprint_file": "09_redis_caching_layer.md",
+    "expected_module_name": "Semantic and Exact-Match Redis Caching",
+    "expected_chunk_ids": [
+      "a8840be4-8d44-5591-97b5-e74e86bdb65a",
+      "03bb46e9-b220-5f7d-ad4c-7bbe89890616",
+      "b0219e40-e510-5d5f-846e-10521a6d0740"
+    ]
+  },
+  {
+    "query_id": "BAI-004",
+    "query": "Key-value cache invalidation strategies for vector similarity search results.",
+    "target_role": "Backend AI Engineer",
+    "expected_blueprint_file": "09_redis_caching_layer.md",
+    "expected_module_name": "Semantic and Exact-Match Redis Caching",
+    "expected_chunk_ids": [
+      "a8840be4-8d44-5591-97b5-e74e86bdb65a",
+      "03bb46e9-b220-5f7d-ad4c-7bbe89890616",
+      "b0219e40-e510-5d5f-846e-10521a6d0740"
+    ]
+  },
+  {
+    "query_id": "DE-003",
+    "query": "Asynchronous background ingestion workers with Celery and RabbitMQ broker.",
+    "target_role": "Data Engineer",
+    "expected_blueprint_file": "10_celery_asynchronous_task_queues.md",
+    "expected_module_name": "Celery Asynchronous Job Execution Architecture",
+    "expected_chunk_ids": [
+      "cef5ecd9-f3e1-55a8-92e8-450a7e49b691",
+      "99a3e0dc-7d55-5759-a673-45b7894570d6",
+      "d3bcd3f4-5f6e-5ebc-bcec-2be299614e68"
+    ]
+  },
+  {
+    "query_id": "DE-009",
+    "query": "Decoupling document embedding generation from HTTP request handlers using worker pools.",
+    "target_role": "Data Engineer",
+    "expected_blueprint_file": "10_celery_asynchronous_task_queues.md",
+    "expected_module_name": "Celery Asynchronous Job Execution Architecture",
+    "expected_chunk_ids": [
+      "cef5ecd9-f3e1-55a8-92e8-450a7e49b691",
+      "99a3e0dc-7d55-5759-a673-45b7894570d6",
+      "d3bcd3f4-5f6e-5ebc-bcec-2be299614e68"
+    ]
+  },
+  {
+    "query_id": "DE-004",
+    "query": "Docker multi-stage build optimization to strip PyTorch bloat and keep image under 400MB.",
+    "target_role": "Data Engineer",
+    "expected_blueprint_file": "11_docker_multistage_builds.md",
+    "expected_module_name": "Docker Multi-Stage Build Optimization",
+    "expected_chunk_ids": [
+      "93f50382-5435-5b88-a58b-d3c891c2145b",
+      "9eb52dd7-c370-5080-9b44-d68c31854f44",
+      "3d2f6397-8e6c-5d62-9852-3f18641517db"
+    ]
+  },
+  {
+    "query_id": "DE-010",
+    "query": "Reducing Docker container size by omitting PyTorch CUDA runtimes in favor of ONNX.",
+    "target_role": "Data Engineer",
+    "expected_blueprint_file": "11_docker_multistage_builds.md",
+    "expected_module_name": "Docker Multi-Stage Build Optimization",
+    "expected_chunk_ids": [
+      "93f50382-5435-5b88-a58b-d3c891c2145b",
+      "9eb52dd7-c370-5080-9b44-d68c31854f44",
+      "3d2f6397-8e6c-5d62-9852-3f18641517db"
+    ]
+  },
+  {
+    "query_id": "DE-005",
+    "query": "Automated GitHub Actions CI pipeline running ruff, mypy, and ephemeral Qdrant tests.",
+    "target_role": "Data Engineer",
+    "expected_blueprint_file": "12_github_actions_ci_cd.md",
+    "expected_module_name": "Automated CI/CD Pipeline with GitHub Actions",
+    "expected_chunk_ids": [
+      "9af18320-c85c-5431-9a69-e35c37adae38",
+      "f2537993-b434-5dfd-ad8b-1447ed6218d1",
+      "3ee8360f-56e6-5912-9d4c-aa8c33ac048f"
+    ]
+  },
+  {
+    "query_id": "DE-011",
+    "query": "GitHub Actions workflow setup with ephemeral service containers for integration tests.",
+    "target_role": "Data Engineer",
+    "expected_blueprint_file": "12_github_actions_ci_cd.md",
+    "expected_module_name": "Automated CI/CD Pipeline with GitHub Actions",
+    "expected_chunk_ids": [
+      "9af18320-c85c-5431-9a69-e35c37adae38",
+      "f2537993-b434-5dfd-ad8b-1447ed6218d1",
+      "3ee8360f-56e6-5912-9d4c-aa8c33ac048f"
+    ]
+  },
+  {
+    "query_id": "DE-006",
+    "query": "Curating high-signal golden benchmark datasets to prevent RAG evaluation drift.",
+    "target_role": "Data Engineer",
+    "expected_blueprint_file": "13_golden_dataset_curation.md",
+    "expected_module_name": "Synthetic and Empirical Golden Dataset Curation",
+    "expected_chunk_ids": [
+      "b5efdeb8-bc04-5ec5-821e-487ee0061796",
+      "d3297a37-418c-531c-804b-e840e990420f",
+      "e2cf5d11-46cb-5039-ac63-46f226cf2f37"
+    ]
+  },
+  {
+    "query_id": "DE-012",
+    "query": "Human-in-the-loop audit rubric for reference engineering blueprints.",
+    "target_role": "Data Engineer",
+    "expected_blueprint_file": "13_golden_dataset_curation.md",
+    "expected_module_name": "Synthetic and Empirical Golden Dataset Curation",
+    "expected_chunk_ids": [
+      "b5efdeb8-bc04-5ec5-821e-487ee0061796",
+      "d3297a37-418c-531c-804b-e840e990420f",
+      "e2cf5d11-46cb-5039-ac63-46f226cf2f37"
+    ]
+  },
+  {
+    "query_id": "DE-007",
+    "query": "Exporting Prometheus metrics for HTTP request latencies and Qdrant retrieval percentiles.",
+    "target_role": "Backend AI Engineer",
+    "expected_blueprint_file": "14_prometheus_metrics_exporting.md",
+    "expected_module_name": "Prometheus Metrics Exporting and Latency Histograms",
+    "expected_chunk_ids": [
+      "a1049b56-51c6-5d4a-9b46-a1a9341e5852",
+      "6a4d486a-88ef-55ce-b1fe-2f7aea1b2627",
+      "55b6d84e-5c72-551d-a2ce-9070cf8873f0"
+    ]
+  },
+  {
+    "query_id": "BAI-005",
+    "query": "Tracking P95 query execution time and reranker latency with Prometheus counters.",
+    "target_role": "Backend AI Engineer",
+    "expected_blueprint_file": "14_prometheus_metrics_exporting.md",
+    "expected_module_name": "Prometheus Metrics Exporting and Latency Histograms",
+    "expected_chunk_ids": [
+      "a1049b56-51c6-5d4a-9b46-a1a9341e5852",
+      "6a4d486a-88ef-55ce-b1fe-2f7aea1b2627",
+      "55b6d84e-5c72-551d-a2ce-9070cf8873f0"
+    ]
+  },
+  {
+    "query_id": "DE-008",
+    "query": "Profiling CPU thermal throttling and ONNX Runtime thread allocation latency in production.",
+    "target_role": "Backend AI Engineer",
+    "expected_blueprint_file": "15_production_latency_profiling.md",
+    "expected_module_name": "Production Latency Profiling and Flamegraph Analysis",
+    "expected_chunk_ids": [
+      "4a696f6d-e0a1-5774-8f0e-b7e9e0fe1cda",
+      "7221f91b-f93f-5962-b8c0-e91d08a85350",
+      "7e55cf59-4f61-5fe6-9858-b11da4ea37e5"
+    ]
+  },
+  {
+    "query_id": "BAI-006",
+    "query": "Preventing thermal CPU throttling during batched cross-attention reranking.",
+    "target_role": "Backend AI Engineer",
+    "expected_blueprint_file": "15_production_latency_profiling.md",
+    "expected_module_name": "Production Latency Profiling and Flamegraph Analysis",
+    "expected_chunk_ids": [
+      "4a696f6d-e0a1-5774-8f0e-b7e9e0fe1cda",
+      "7221f91b-f93f-5962-b8c0-e91d08a85350",
+      "7e55cf59-4f61-5fe6-9858-b11da4ea37e5"
+    ]
+  }
+]
