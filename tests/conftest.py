@@ -5,12 +5,13 @@ HybridSearchEngine, and CrossEncoderReranker.
 """
 
 from typing import Generator
+
 import pytest
 from qdrant_client import QdrantClient
 
 from app.core.config import settings
-from app.services.search.ood_gate import OODGate
 from app.services.search.hybrid_search import HybridSearchEngine
+from app.services.search.ood_gate import OODGate
 from app.services.search.reranker import CrossEncoderReranker
 
 

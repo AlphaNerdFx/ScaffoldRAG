@@ -1,6 +1,7 @@
 """Unit and integration tests for Subsystem 2.1: Out-of-Distribution Hard Gate."""
 
 import pytest
+
 from app.core.exceptions import OutOfDistributionError
 from app.services.search.ood_gate import OODGate
 

@@ -1,6 +1,7 @@
 """tests/test_generator.py: Unit tests for RoadmapGenerator with mocked transport."""
 
 from unittest.mock import MagicMock
+
 import pytest
 
 from app.schemas.roadmap import Milestone, ProjectRoadmap, RoadmapRequest

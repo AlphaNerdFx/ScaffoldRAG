@@ -1,6 +1,7 @@
 """Unit and integration tests for Subsystem 2.3: Cross-Encoder Reranker."""
 
 import time
+
 from app.services.search.hybrid_search import HybridSearchEngine
 from app.services.search.reranker import CrossEncoderReranker
 

@@ -2,8 +2,10 @@
 
 import json
 from unittest.mock import MagicMock, patch
+
 import pytest
 from httpx import ASGITransport, AsyncClient
+
 from app.main import app
 
 
@@ -29,6 +31,7 @@ async def test_timing_header_injected_on_health() -> None:
 async def test_structured_json_log_emitted(caplog: pytest.LogCaptureFixture) -> None:
     """Asserts that telemetry logs emit a parsable JSON string with all timing fields."""
     import logging
+
     caplog.set_level(logging.INFO, logger="scaffold_rag.telemetry")
 
     transport = ASGITransport(app=app)
@@ -40,7 +43,9 @@ async def test_structured_json_log_emitted(caplog: pytest.LogCaptureFixture) -> 
         async with AsyncClient(transport=transport, base_url="http://testserver") as client:
             await client.get("/api/v1/health")
 
-    telemetry_records = [record for record in caplog.records if record.name == "scaffold_rag.telemetry"]
+    telemetry_records = [
+        record for record in caplog.records if record.name == "scaffold_rag.telemetry"
+    ]
     assert len(telemetry_records) >= 1
 
     last_record = json.loads(telemetry_records[-1].message)

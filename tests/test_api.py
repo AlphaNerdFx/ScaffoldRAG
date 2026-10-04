@@ -4,10 +4,10 @@ from collections.abc import AsyncGenerator
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from fastapi import status
-from httpx import ASGITransport, AsyncClient
 import pytest
 import pytest_asyncio
+from fastapi import status
+from httpx import ASGITransport, AsyncClient
 
 from app.api.v1.endpoints import (
     get_circuit_breaker,
@@ -96,21 +96,24 @@ def sample_roadmap() -> ProjectRoadmap:
 
 
 @pytest_asyncio.fixture
-async def async_client(test_repo: SQLiteRoadmapRepository, clean_circuit_breaker: CircuitBreaker) -> AsyncGenerator[AsyncClient, None]:
+async def async_client(
+    test_repo: SQLiteRoadmapRepository, clean_circuit_breaker: CircuitBreaker
+) -> AsyncGenerator[AsyncClient, None]:
     """Provisions httpx.AsyncClient with deterministic dependency overrides."""
     app.dependency_overrides[get_repository] = lambda: test_repo
     app.dependency_overrides[get_circuit_breaker] = lambda: clean_circuit_breaker
-    
+
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://testserver") as client:
         yield client
-    
+
     app.dependency_overrides.clear()
 
 
 # ============================================================================
 # 1. Health Probe Endpoint Tests (GET /health)
 # ============================================================================
+
 
 @pytest.mark.asyncio
 async def test_health_check_healthy(async_client: AsyncClient) -> None:
@@ -144,6 +147,7 @@ async def test_health_check_qdrant_unhealthy(async_client: AsyncClient) -> None:
 # ============================================================================
 # 2. Roadmap Generation Tests (POST /api/v1/roadmaps)
 # ============================================================================
+
 
 @pytest.mark.asyncio
 async def test_post_roadmap_ood_rejection_returns_422(async_client: AsyncClient) -> None:
@@ -199,7 +203,7 @@ async def test_post_roadmap_success_flow(
 
     assert response.status_code == status.HTTP_200_OK
     assert response.headers.get("X-Fallback-Applied") == "false"
-    
+
     data = response.json()
     assert data["roadmap_id"] == sample_roadmap.roadmap_id
     assert len(data["milestones"]) == 5
@@ -234,7 +238,9 @@ async def test_post_roadmap_degraded_fallback_header(
         patch("app.api.v1.endpoints.OODGate.validate_query", return_value=0.78),
         patch("app.api.v1.endpoints.HybridSearchEngine.search", return_value=[dummy_chunk]),
         patch("app.api.v1.endpoints.CrossEncoderReranker.rerank", return_value=[dummy_chunk]),
-        patch("app.api.v1.endpoints.FallbackProvider.get_static_roadmap", return_value=sample_roadmap),
+        patch(
+            "app.api.v1.endpoints.FallbackProvider.get_static_roadmap", return_value=sample_roadmap
+        ),
     ):
         payload = {
             "target_role": "Data Engineer",
@@ -251,6 +257,7 @@ async def test_post_roadmap_degraded_fallback_header(
 # ============================================================================
 # 3. Roadmap Export Tests (GET /api/v1/roadmaps/{id}/export)
 # ============================================================================
+
 
 @pytest.mark.asyncio
 async def test_get_export_markdown_success(
@@ -296,6 +303,8 @@ async def test_get_export_invalid_format_query_returns_422(
 ) -> None:
     """Asserts that unsupported export formats (e.g. format=pdf) fail schema validation."""
     test_repo.save(sample_roadmap)
-    response = await async_client.get(f"/api/v1/roadmaps/{sample_roadmap.roadmap_id}/export?format=pdf")
+    response = await async_client.get(
+        f"/api/v1/roadmaps/{sample_roadmap.roadmap_id}/export?format=pdf"
+    )
 
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
