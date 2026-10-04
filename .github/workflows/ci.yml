@@ -59,6 +59,7 @@ jobs:
       - name: Gate 1 - Code Quality Checks (Ruff)
         run: |
           poetry run ruff check .
+          poetry run ruff format --diff .
           poetry run ruff format --check .
 
       - name: Gate 2 - Static Type Checking (Mypy)
