@@ -1,0 +1,21 @@
+# Version control & OS artifacts
+.git
+.gitignore
+.DS_Store
+
+# Virtual environments & compiler caches
+.venv
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.coverage
+
+# Tests (executed by CI, not needed inside production container)
+tests/
+
+# Local SQLite databases (prevent copying host test DBs into container)
+data/roadmaps.db
+data/roadmaps.db-*
