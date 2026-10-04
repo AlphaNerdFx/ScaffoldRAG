@@ -45,6 +45,9 @@ ignore = ["B008", "E501"]
 "tests/*" = ["S101", "E731"]
 "scripts/*" = ["S101", "E731"]
 
+[tool.ruff.format]
+line-ending = "lf"
+
 [tool.mypy]
 python_version = "3.11"
 warn_unused_configs = true
