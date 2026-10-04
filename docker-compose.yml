@@ -17,8 +17,8 @@ services:
       - QDRANT__SERVICE__ENABLE_CORS=true
       - QDRANT__LOG_LEVEL=INFO
     healthcheck:
-      test: ["CMD", "curl", "-s", "http://localhost:6333/readyz"]
-      interval: 10s
+      test: ["CMD-SHELL", "bash -c ':> /dev/tcp/127.0.0.1/6333' || exit 1"]
+      interval: 5s
       timeout: 5s
       retries: 5
     networks:
