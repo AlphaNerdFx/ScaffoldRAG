@@ -1,6 +1,7 @@
 """app/services/generator.py: Structured inference engine wrapping Groq via Instructor."""
 
 from typing import Any
+
 import instructor
 from groq import Groq
 
@@ -20,11 +21,12 @@ class RoadmapGenerator:
     ) -> None:
         """Initializes Instructor-patched Groq client."""
         settings = get_settings()
-        resolved_key = (
-            api_key
-            or (settings.GROQ_API_KEY.get_secret_value() if hasattr(settings.GROQ_API_KEY, "get_secret_value") else str(settings.GROQ_API_KEY))
+        resolved_key = api_key or (
+            settings.GROQ_API_KEY.get_secret_value()
+            if hasattr(settings.GROQ_API_KEY, "get_secret_value")
+            else str(settings.GROQ_API_KEY)
         )
-        
+
         if not resolved_key or resolved_key == "mock-or-valid-groq-key":
             self._raw_client = None
             self.client = None
@@ -104,10 +106,14 @@ class RoadmapGenerator:
     ) -> ProjectRoadmap:
         """Invokes Groq with Instructor schema enforcement and up to 2 retries."""
         if not context_chunks:
-            raise ValueError("Context chunks cannot be empty. RAG generation requires retrieved context.")
+            raise ValueError(
+                "Context chunks cannot be empty. RAG generation requires retrieved context."
+            )
 
         if self.client is None:
-            raise RuntimeError("RoadmapGenerator client is uninitialized. A valid GROQ_API_KEY is required.")
+            raise RuntimeError(
+                "RoadmapGenerator client is uninitialized. A valid GROQ_API_KEY is required."
+            )
 
         system_prompt = self._build_system_prompt()
         user_prompt = self._build_user_prompt(request, context_chunks)

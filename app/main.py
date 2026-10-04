@@ -1,7 +1,7 @@
 """app/main.py: FastAPI entry point with Lifespan Model Warmup and Telemetry Middleware."""
 
-from contextlib import asynccontextmanager
 import logging
+from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
 from fastapi import FastAPI
@@ -26,8 +26,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("Starting ScaffoldRAG API. Executing Subsystem warmup...")
 
     try:
-        client = QdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_GRPC_PORT, prefer_grpc=True)
-        
+        client = QdrantClient(
+            host=settings.QDRANT_HOST, port=settings.QDRANT_GRPC_PORT, prefer_grpc=True
+        )
+
         # 1. Warm up BGE-small Dense Model
         ood_gate = OODGate(client=client, collection_name=settings.QDRANT_COLLECTION_NAME)
         list(ood_gate.dense_model.query_embed("warmup query"))

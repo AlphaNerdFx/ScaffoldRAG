@@ -9,7 +9,7 @@ from fastapi.responses import PlainTextResponse
 from qdrant_client import QdrantClient
 
 from app.core.circuit_breaker import CircuitBreaker, FallbackProvider
-from app.core.config import Settings, get_settings
+from app.core.config import get_settings
 from app.schemas.roadmap import ProjectRoadmap, RoadmapRequest
 from app.services.exporter import roadmap_to_markdown
 from app.services.generator import RoadmapGenerator
@@ -39,7 +39,9 @@ _qdrant_client = QdrantClient(
 
 # Shared AI / ML Engines (Instantiated once to avoid per-request ONNX loading)
 _ood_gate = OODGate(client=_qdrant_client, collection_name=_settings.QDRANT_COLLECTION_NAME)
-_hybrid_searcher = HybridSearchEngine(client=_qdrant_client, collection_name=_settings.QDRANT_COLLECTION_NAME)
+_hybrid_searcher = HybridSearchEngine(
+    client=_qdrant_client, collection_name=_settings.QDRANT_COLLECTION_NAME
+)
 _reranker = CrossEncoderReranker()
 _generator = RoadmapGenerator()
 
@@ -52,8 +54,10 @@ def get_repository() -> RoadmapRepository:
 def get_circuit_breaker() -> CircuitBreaker:
     return _circuit_breaker
 
+
 def get_qdrant_client() -> QdrantClient:
     return _qdrant_client
+
 
 def get_fallback_provider() -> FallbackProvider:
     return _fallback_provider
@@ -117,12 +121,16 @@ def generate_roadmap(
     # 2. Subsystem 2.2: Hybrid Retrieval Timing
     t_retrieval_start = time.perf_counter()
     candidates = hybrid_searcher.search(query_text=query_text, top_k=15)
-    http_request.state.timings["t_retrieval_ms"] = round((time.perf_counter() - t_retrieval_start) * 1000, 2)
+    http_request.state.timings["t_retrieval_ms"] = round(
+        (time.perf_counter() - t_retrieval_start) * 1000, 2
+    )
 
     # 3. Subsystem 2.3: Cross-Encoder Reranker Timing
     t_rerank_start = time.perf_counter()
     reranked_chunks = reranker.rerank(query_text=query_text, candidates=candidates, top_n=4)
-    http_request.state.timings["t_rerank_ms"] = round((time.perf_counter() - t_rerank_start) * 1000, 2)
+    http_request.state.timings["t_rerank_ms"] = round(
+        (time.perf_counter() - t_rerank_start) * 1000, 2
+    )
 
     # 4. Subsystems 3 & 5: Generation Timing (Protected by Circuit Breaker)
     was_fallback: bool = False
@@ -149,7 +157,9 @@ def generate_roadmap(
             detail="Upstream generative model failed to return compliant schema.",
         ) from exc
     finally:
-        http_request.state.timings["t_generation_ms"] = round((time.perf_counter() - t_gen_start) * 1000, 2)
+        http_request.state.timings["t_generation_ms"] = round(
+            (time.perf_counter() - t_gen_start) * 1000, 2
+        )
 
     if was_fallback:
         response.headers["X-Fallback-Applied"] = "true"
@@ -185,6 +195,7 @@ def health_check(
 
     return {"status": "healthy", "qdrant": True}
 
+
 @router.get(
     "/roadmaps/{roadmap_id}/export",
     response_class=PlainTextResponse,
@@ -193,9 +204,15 @@ def health_check(
 def export_roadmap(
     roadmap_id: str,
     format: str = Query(default="markdown", pattern="^markdown$"),
-    repo: Annotated[RoadmapRepository, Depends(get_repository)] = None,
+    repo: Annotated[RoadmapRepository, Depends(get_repository)] | None = None,
 ) -> PlainTextResponse:
     """Fetches roadmap by ID and converts it to raw Markdown checklist."""
+    # Guard against None to satisfy PEP 484 and Mypy
+    if repo is None:
+        from app.services.storage import SQLiteRoadmapRepository
+
+        repo = SQLiteRoadmapRepository()
+
     roadmap = repo.get_by_id(roadmap_id)
     if roadmap is None:
         raise HTTPException(
@@ -205,26 +222,3 @@ def export_roadmap(
 
     markdown_content = roadmap_to_markdown(roadmap)
     return PlainTextResponse(content=markdown_content, media_type="text/markdown")
-
-
-@router.get(
-    "/health",
-    status_code=status.HTTP_200_OK,
-    summary="System Health & Readiness Probe",
-)
-def health_check() -> dict[str, str | bool]:
-    """Verifies Qdrant gRPC socket and inference configuration readiness."""
-    qdrant_healthy = False
-    try:
-        _qdrant_client.get_collections()
-        qdrant_healthy = True
-    except Exception as exc:
-        logger.error(f"Health check failed to communicate with Qdrant: {exc}")
-
-    if not qdrant_healthy:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail={"status": "unhealthy", "qdrant": False},
-        )
-
-    return {"status": "healthy", "qdrant": True}

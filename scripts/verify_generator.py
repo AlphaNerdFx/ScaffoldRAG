@@ -1,6 +1,7 @@
 """scripts/verify_generator.py: Live verification script asserting real Groq generation."""
 
 import time
+
 from app.core.config import get_settings
 from app.schemas.roadmap import ProjectRoadmap, RoadmapRequest
 from app.services.generator import RoadmapGenerator
@@ -9,8 +10,12 @@ from app.services.search.hybrid_search import ScoredChunk
 
 def main() -> None:
     settings = get_settings()
-    api_key = settings.GROQ_API_KEY.get_secret_value() if hasattr(settings.GROQ_API_KEY, "get_secret_value") else str(settings.GROQ_API_KEY)
-    
+    api_key = (
+        settings.GROQ_API_KEY.get_secret_value()
+        if hasattr(settings.GROQ_API_KEY, "get_secret_value")
+        else str(settings.GROQ_API_KEY)
+    )
+
     if not api_key or "mock" in api_key.lower():
         print("[FAIL] A valid GROQ_API_KEY is required in .env to run this live verification.")
         exit(1)

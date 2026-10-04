@@ -1,6 +1,7 @@
 """app/api/v1/exceptions.py: Global FastAPI exception handlers."""
 
 import logging
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
@@ -13,8 +14,12 @@ def register_exception_handlers(app: FastAPI) -> None:
     """Binds domain exception mappings to the FastAPI transport layer."""
 
     @app.exception_handler(OutOfDistributionError)
-    async def out_of_distribution_handler(request: Request, exc: OutOfDistributionError) -> JSONResponse:
-        logger.warning(f"OOD query rejected: query='{exc.query}' score={exc.score:.4f} threshold={exc.threshold}")
+    async def out_of_distribution_handler(
+        request: Request, exc: OutOfDistributionError
+    ) -> JSONResponse:
+        logger.warning(
+            f"OOD query rejected: query='{exc.query}' score={exc.score:.4f} threshold={exc.threshold}"
+        )
         return JSONResponse(
             status_code=422,
             content={

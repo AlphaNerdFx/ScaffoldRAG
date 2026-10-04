@@ -5,8 +5,9 @@ fastembed.rerank.cross_encoder.TextCrossEncoder (Xenova/ms-marco-MiniLM-L-6-v2).
 Truncates RRF candidates down to top 4 chunks under a strict 450ms CPU SLA.
 """
 
-import time
 import logging
+import time
+
 from fastembed.rerank.cross_encoder import TextCrossEncoder
 
 from app.services.search.hybrid_search import ScoredChunk
@@ -72,7 +73,7 @@ class CrossEncoderReranker:
 
         # 3. Associate cross-encoder score with updated ScoredChunk entities
         scored_candidates: list[tuple[float, ScoredChunk]] = []
-        for score, candidate in zip(scores, candidates):
+        for score, candidate in zip(scores, candidates, strict=True):
             reranked_chunk = ScoredChunk(
                 chunk_id=candidate.chunk_id,
                 content=candidate.content,
@@ -100,6 +101,6 @@ class CrossEncoderReranker:
                 len(candidates),
                 elapsed_ms,
             )
-            
+
         # 6. Truncate to top_n
         return [chunk for _, chunk in scored_candidates[:top_n]]

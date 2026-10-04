@@ -4,16 +4,15 @@ Computes maximum cosine similarity between incoming query vectors and
 the indexed corpus in Qdrant to reject irrelevant or malicious inputs.
 """
 
-from typing import Any
+import grpc
 from fastembed import TextEmbedding
 from qdrant_client import QdrantClient, models
 from qdrant_client.http.exceptions import UnexpectedResponse
-import grpc
 
 from app.core.exceptions import (
-    OutOfDistributionError,
     CollectionNotFoundError,
     CorpusEmptyError,
+    OutOfDistributionError,
 )
 
 
@@ -26,7 +25,7 @@ class OODGate:
         collection_name: str = "engineering_blueprints",
         model_name: str = "BAAI/bge-small-en-v1.5",
         threshold: float = 0.58,  # Calibrated empirically from probe data
-) -> None:
+    ) -> None:
         """Initializes the OOD gate with a Qdrant client and FastEmbed model."""
         self.client = client
         self.collection_name = collection_name

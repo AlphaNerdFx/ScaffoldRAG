@@ -19,6 +19,7 @@ from qdrant_client.http.exceptions import UnexpectedResponse
 # Domain Exceptions (SPEC_V1.md Section 1.4)
 # -----------------------------------------------------------------------------
 
+
 class CorpusDirectoryNotFoundError(FileNotFoundError):
     """Raised if the blueprint directory does not exist on disk."""
 
@@ -34,6 +35,7 @@ class QdrantIngestionError(RuntimeError):
 # -----------------------------------------------------------------------------
 # Data Models (SPEC_V1.md Section 1.3 & ADR-05)
 # -----------------------------------------------------------------------------
+
 
 class BlueprintChunk(BaseModel):
     chunk_id: str = Field(..., description="Deterministic UUIDv5 generated from filepath + header")
@@ -56,6 +58,7 @@ class BlueprintChunk(BaseModel):
 # Ingestion & Indexing Engine
 # -----------------------------------------------------------------------------
 
+
 class IndexerService:
     RE_TITLE = re.compile(r"^#\s+Module:\s*(.+)$", re.MULTILINE)
     RE_DIFFICULTY = re.compile(r"^-\s*Difficulty Level:\s*([1-5])$", re.MULTILINE)
@@ -71,7 +74,7 @@ class IndexerService:
     ) -> None:
         self.client = client
         self.collection_name = collection_name
-        
+
         # Local ONNX runtime models (ADR-04: BAAI/bge-small-en-v1.5 and Qdrant/bm25)
         self.dense_model = TextEmbedding(model_name="BAAI/bge-small-en-v1.5")
         self.sparse_model = SparseTextEmbedding(model_name="Qdrant/bm25")
@@ -110,7 +113,9 @@ class IndexerService:
                 field_schema=models.PayloadSchemaType.KEYWORD,
             )
         except Exception as exc:
-            raise QdrantIngestionError(f"Failed to configure collection '{self.collection_name}': {exc}") from exc
+            raise QdrantIngestionError(
+                f"Failed to configure collection '{self.collection_name}': {exc}"
+            ) from exc
 
     def parse_markdown(self, file_path: Path) -> list[BlueprintChunk]:
         """Reads a blueprint file, extracts metadata, and splits content by '## ' headers."""
@@ -127,7 +132,10 @@ class IndexerService:
         mem_match = self.RE_MEMORY.search(raw_text)
         cpx_match = self.RE_COMPLEXITY.search(raw_text)
 
-        if not all([title_match, diff_match, prereq_match, lat_match, mem_match, cpx_match]):
+        # Replace: if not all([title_match, diff_match, prereq_match, lat_match, mem_match, cpx_match]):
+        if not (
+            title_match and diff_match and prereq_match and lat_match and mem_match and cpx_match
+        ):
             raise InvalidBlueprintStructureError(
                 f"File {file_path.name} is missing mandatory metadata headers or tradeoff fields."
             )
@@ -211,7 +219,9 @@ class IndexerService:
             sparse_vectors = list(self.sparse_model.embed(texts))
 
             points: list[models.PointStruct] = []
-            for chunk, dense_vec, sparse_vec in zip(batch, dense_vectors, sparse_vectors):
+            for chunk, dense_vec, sparse_vec in zip(
+                batch, dense_vectors, sparse_vectors, strict=True
+            ):
                 points.append(
                     models.PointStruct(
                         id=chunk.chunk_id,

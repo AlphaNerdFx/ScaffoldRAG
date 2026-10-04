@@ -1,6 +1,7 @@
 """app/schemas/roadmap.py: Strongly typed data contracts for roadmap generation."""
 
 import uuid
+
 from pydantic import BaseModel, Field, field_validator
 
 

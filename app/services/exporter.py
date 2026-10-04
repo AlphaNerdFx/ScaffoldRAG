@@ -16,13 +16,15 @@ def roadmap_to_markdown(roadmap: ProjectRoadmap) -> str:
 
     for m in roadmap.milestones:
         tools = ", ".join(f"`{t}`" for t in m.tools_introduced)
-        lines.extend([
-            f"## Stage {m.stage}: {m.name}",
-            f"- [ ] **Verification Metric:** {m.verification_metric}",
-            f"- **Architectural Rationale:** {m.why_added}",
-            f"- **Technologies Introduced:** {tools}",
-            f"- **Documented Tradeoff:** {m.tradeoff}",
-            "",
-        ])
+        lines.extend(
+            [
+                f"## Stage {m.stage}: {m.name}",
+                f"- [ ] **Verification Metric:** {m.verification_metric}",
+                f"- **Architectural Rationale:** {m.why_added}",
+                f"- **Technologies Introduced:** {tools}",
+                f"- **Documented Tradeoff:** {m.tradeoff}",
+                "",
+            ]
+        )
 
     return "\n".join(lines)

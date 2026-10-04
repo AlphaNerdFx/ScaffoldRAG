@@ -13,18 +13,40 @@ import time
 from pathlib import Path
 
 # Static whitelist of verified packages and system tools referenced across blueprints
-PERMITTED_ECOSYSTEM = frozenset({
-    # Production application & async dependencies
-    "fastapi", "uvicorn", "starlette", "pydantic", "pydantic_settings",
-    "asyncio", "structlog", "tenacity", "pybreaker", "httpx",
-    # Retrieval, embeddings & ML runtimes
-    "qdrant_client", "fastembed", "onnxruntime", "sentence_transformers",
-    "numpy", "instructor", "groq",
-    # Caching, queues & observability
-    "redis", "celery", "prometheus_client", "py_spy",
-    # Evaluation, testing & DevOps
-    "ragas", "pytest", "docker", "poetry", "git"
-})
+PERMITTED_ECOSYSTEM = frozenset(
+    {
+        # Production application & async dependencies
+        "fastapi",
+        "uvicorn",
+        "starlette",
+        "pydantic",
+        "pydantic_settings",
+        "asyncio",
+        "structlog",
+        "tenacity",
+        "pybreaker",
+        "httpx",
+        # Retrieval, embeddings & ML runtimes
+        "qdrant_client",
+        "fastembed",
+        "onnxruntime",
+        "sentence_transformers",
+        "numpy",
+        "instructor",
+        "groq",
+        # Caching, queues & observability
+        "redis",
+        "celery",
+        "prometheus_client",
+        "py_spy",
+        # Evaluation, testing & DevOps
+        "ragas",
+        "pytest",
+        "docker",
+        "poetry",
+        "git",
+    }
+)
 
 EXPECTED_FILES = [
     "01_in_memory_dense_retrieval.md",
@@ -57,16 +79,27 @@ RE_COMPLEXITY = re.compile(r"^-\s*Operational Complexity:\s*(.+)$", re.MULTILINE
 RE_IMPORT = re.compile(r"^\s*(?:import|from)\s+([a-zA-Z0-9_]+)", re.MULTILINE)
 
 # Unacceptable non-quantitative statements
-VAGUE_TERMS = frozenset({
-    "none", "n/a", "fast", "slow", "low", "high", "minimal",
-    "negligible", "makes it faster", "no impact", "zero"
-})
+VAGUE_TERMS = frozenset(
+    {
+        "none",
+        "n/a",
+        "fast",
+        "slow",
+        "low",
+        "high",
+        "minimal",
+        "negligible",
+        "makes it faster",
+        "no impact",
+        "zero",
+    }
+)
 
 REQUIRED_SECTIONS = [
     "## Metadata",
     "## Architecture Pattern",
     "## Explicit Tradeoffs",
-    "## Verification Metric"
+    "## Verification Metric",
 ]
 
 
@@ -111,7 +144,9 @@ def lint_blueprint(file_path: Path) -> list[str]:
     if arch_sec:
         text_body = arch_sec.split("\n", 1)[1].strip() if "\n" in arch_sec else ""
         if len(text_body) < 50:
-            errors.append("Content in '## Architecture Pattern' is too short (must be >= 50 characters).")
+            errors.append(
+                "Content in '## Architecture Pattern' is too short (must be >= 50 characters)."
+            )
 
     # 5. Explicit Tradeoffs Quantitative Checks
     tradeoff_sec = next((s for s in sections if s.startswith("## Explicit Tradeoffs")), None)
@@ -140,7 +175,9 @@ def lint_blueprint(file_path: Path) -> list[str]:
     if metric_sec:
         text_body = metric_sec.split("\n", 1)[1].strip() if "\n" in metric_sec else ""
         if len(text_body) < 30:
-            errors.append("Content in '## Verification Metric' is too short (must be >= 30 characters).")
+            errors.append(
+                "Content in '## Verification Metric' is too short (must be >= 30 characters)."
+            )
 
     # 7. Token Bound Verification (SPEC Appendix A: <= 512 tokens per chunk)
     for sec in sections:
@@ -185,14 +222,18 @@ def main() -> int:
     elapsed_time = time.perf_counter() - start_time
 
     if total_errors:
-        print(f"\n[FAILED] Static blueprint linting failed with errors ({elapsed_time:.4f}s elapsed):\n")
+        print(
+            f"\n[FAILED] Static blueprint linting failed with errors ({elapsed_time:.4f}s elapsed):\n"
+        )
         for fname, errs in total_errors.items():
             print(f"  {fname}:")
             for err in errs:
                 print(f"    - {err}")
         return 1
 
-    print(f"\n[PASSED] All {len(EXPECTED_FILES)} blueprints verified successfully in {elapsed_time:.4f}s.")
+    print(
+        f"\n[PASSED] All {len(EXPECTED_FILES)} blueprints verified successfully in {elapsed_time:.4f}s."
+    )
     return 0
 
 

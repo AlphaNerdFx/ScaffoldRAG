@@ -5,13 +5,15 @@ using RRF (k=60) to produce 15 high-recall candidate chunks. Compatible with Qdr
 """
 
 from typing import Any
+
+from fastembed import SparseTextEmbedding, TextEmbedding
 from pydantic import BaseModel, Field
-from fastembed import TextEmbedding, SparseTextEmbedding
 from qdrant_client import QdrantClient, models
 
 
 class ScoredChunk(BaseModel):
     """Domain model representing a retrieved and scored chunk of an engineering blueprint."""
+
     chunk_id: str = Field(..., description="Deterministic UUIDv5 chunk identifier")
     content: str = Field(..., description="Raw text content of the blueprint section")
     module_name: str = Field(..., description="Parent blueprint module title")

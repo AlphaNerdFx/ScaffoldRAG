@@ -1,7 +1,7 @@
 """app/services/storage.py: Embedded SQLite repository for generated roadmaps."""
 
-from pathlib import Path
 import sqlite3
+from pathlib import Path
 from typing import Protocol
 
 from app.schemas.roadmap import ProjectRoadmap
@@ -10,11 +10,9 @@ from app.schemas.roadmap import ProjectRoadmap
 class RoadmapRepository(Protocol):
     """Abstract protocol for roadmap persistence."""
 
-    def save(self, roadmap: ProjectRoadmap) -> None:
-        ...
+    def save(self, roadmap: ProjectRoadmap) -> None: ...
 
-    def get_by_id(self, roadmap_id: str) -> ProjectRoadmap | None:
-        ...
+    def get_by_id(self, roadmap_id: str) -> ProjectRoadmap | None: ...
 
 
 class SQLiteRoadmapRepository:

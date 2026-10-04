@@ -1,8 +1,9 @@
 """frontend/app.py: Streamlit user interface for ScaffoldRAG."""
 
 import os
-import streamlit as st
+
 import httpx
+import streamlit as st
 
 # 1. Environment-Aware Configuration
 API_BASE_URL = os.getenv("BACKEND_API_URL", "http://127.0.0.1:8000")
@@ -58,7 +59,9 @@ with st.sidebar:
         help="List technologies you already know so the engine can scaffold missing architectural layers.",
     )
 
-    generate_btn = st.button("🚀 Generate Production Roadmap", type="primary", use_container_width=True)
+    generate_btn = st.button(
+        "🚀 Generate Production Roadmap", type="primary", use_container_width=True
+    )
 
     st.divider()
     st.markdown("### System Telemetry")
@@ -93,16 +96,24 @@ if generate_btn:
                     if resp.status_code == 200:
                         roadmap_data = resp.json()
                         st.session_state["current_roadmap"] = roadmap_data
-                        st.session_state["is_fallback"] = resp.headers.get("X-Fallback-Applied") == "true"
-                        st.session_state["latency_ms"] = float(resp.headers.get("X-Process-Time-Ms", 0.0))
+                        st.session_state["is_fallback"] = (
+                            resp.headers.get("X-Fallback-Applied") == "true"
+                        )
+                        st.session_state["latency_ms"] = float(
+                            resp.headers.get("X-Process-Time-Ms", 0.0)
+                        )
 
                         # Immediately pre-fetch markdown checklist buffer
                         roadmap_id = roadmap_data["roadmap_id"]
-                        export_resp = client.get(f"/api/v1/roadmaps/{roadmap_id}/export?format=markdown")
+                        export_resp = client.get(
+                            f"/api/v1/roadmaps/{roadmap_id}/export?format=markdown"
+                        )
                         if export_resp.status_code == 200:
                             st.session_state["export_markdown"] = export_resp.text
                         else:
-                            st.warning("Roadmap generated, but failed to compile markdown checklist.")
+                            st.warning(
+                                "Roadmap generated, but failed to compile markdown checklist."
+                            )
 
                     elif resp.status_code == 422:
                         error_detail = resp.json()
@@ -113,16 +124,22 @@ if generate_btn:
                             f"*Please input technical computing, RAG, or data systems domains.*"
                         )
                     elif resp.status_code == 502:
-                        st.error("⚠️ Upstream inference provider failed schema compliance. Circuit breaker active.")
+                        st.error(
+                            "⚠️ Upstream inference provider failed schema compliance. Circuit breaker active."
+                        )
                     elif resp.status_code == 503:
                         st.error("🚨 Vector database or backend service unavailable.")
                     else:
                         st.error(f"Unexpected error: HTTP {resp.status_code}")
 
             except httpx.ConnectError:
-                st.error(f"🚨 Cannot connect to backend API at `{API_BASE_URL}`. Ensure FastAPI is running.")
+                st.error(
+                    f"🚨 Cannot connect to backend API at `{API_BASE_URL}`. Ensure FastAPI is running."
+                )
             except httpx.TimeoutException:
-                st.error("⏱️ Request timed out. Upstream LLM or retrieval took longer than 60 seconds.")
+                st.error(
+                    "⏱️ Request timed out. Upstream LLM or retrieval took longer than 60 seconds."
+                )
 
 
 # 6. Main Canvas: Rendering Scaffolding Plan
@@ -160,10 +177,12 @@ if st.session_state["current_roadmap"]:
             st.markdown(f"**💡 Architectural Justification:** {m['why_added']}")
 
             # Tool Badges
-            tools_html = " ".join([
-                f"<span style='background-color:#2e3440;color:#88c0d0;padding:3px 8px;border-radius:4px;font-size:12px;margin-right:5px;'>{t}</span>"
-                for t in m["tools_introduced"]
-            ])
+            tools_html = " ".join(
+                [
+                    f"<span style='background-color:#2e3440;color:#88c0d0;padding:3px 8px;border-radius:4px;font-size:12px;margin-right:5px;'>{t}</span>"
+                    for t in m["tools_introduced"]
+                ]
+            )
             st.markdown(f"**🛠️ Technologies Introduced:** {tools_html}", unsafe_allow_html=True)
             st.markdown("<br>", unsafe_allow_html=True)
 
@@ -175,4 +194,6 @@ if st.session_state["current_roadmap"]:
 
 else:
     if not generate_btn:
-        st.info("👈 Configure your engineering profile in the sidebar and click **Generate Production Roadmap** to start.")
+        st.info(
+            "👈 Configure your engineering profile in the sidebar and click **Generate Production Roadmap** to start."
+        )

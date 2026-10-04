@@ -9,6 +9,7 @@ from typing import Any
 
 class ScaffoldRAGError(Exception):
     """Base exception for all domain errors within ScaffoldRAG."""
+
     pass
 
 
@@ -34,9 +35,11 @@ class OutOfDistributionError(ScaffoldRAGError):
 
 class CollectionNotFoundError(ScaffoldRAGError):
     """Raised when querying a Qdrant collection that has not been initialized."""
+
     pass
 
 
 class CorpusEmptyError(ScaffoldRAGError):
     """Raised when the collection contains 0 indexed points."""
+
     pass

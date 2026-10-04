@@ -1,10 +1,10 @@
 """app/core/circuit_breaker.py: SRE Circuit Breaker and Fallback Subsystem."""
 
-from enum import Enum
 import json
 import logging
-from pathlib import Path
 import time
+from enum import Enum
+from pathlib import Path
 from typing import Any, Callable, TypeVar
 
 from app.schemas.roadmap import ProjectRoadmap
@@ -17,8 +17,8 @@ T = TypeVar("T")
 class CircuitState(str, Enum):
     """Discrete states of the circuit breaker finite state machine."""
 
-    CLOSED = "CLOSED"        # Normal operations; calls routed to upstream
-    OPEN = "OPEN"            # Outage detected; upstream blocked, serving fallbacks
+    CLOSED = "CLOSED"  # Normal operations; calls routed to upstream
+    OPEN = "OPEN"  # Outage detected; upstream blocked, serving fallbacks
     HALF_OPEN = "HALF-OPEN"  # Testing canary call to verify upstream recovery
 
 
@@ -112,8 +112,7 @@ class CircuitBreaker:
             self.state = CircuitState.OPEN
         elif self.failure_count >= self.failure_threshold:
             logger.error(
-                f"Failure threshold ({self.failure_threshold}) reached. "
-                "Tripping circuit to OPEN."
+                f"Failure threshold ({self.failure_threshold}) reached. Tripping circuit to OPEN."
             )
             self.state = CircuitState.OPEN
 

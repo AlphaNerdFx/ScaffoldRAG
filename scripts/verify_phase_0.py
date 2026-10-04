@@ -1,7 +1,9 @@
 import sys
-from importlib.metadata import version
+
 from qdrant_client import QdrantClient
+
 from app.core.config import get_settings
+
 
 def run_audit():
     print("==================================================")
@@ -28,22 +30,24 @@ def run_audit():
     try:
         # A. HTTP REST Interface (Port 6333)
         rest_client = QdrantClient(
-            host=settings.QDRANT_HOST,
-            port=settings.QDRANT_PORT,
-            prefer_grpc=False
+            host=settings.QDRANT_HOST, port=settings.QDRANT_PORT, prefer_grpc=False
         )
         rest_cols = rest_client.get_collections()
-        print(f"  --> REST Interface (Port {settings.QDRANT_PORT}) : CONNECTED (Active Collections: {len(rest_cols.collections)})")
+        print(
+            f"  --> REST Interface (Port {settings.QDRANT_PORT}) : CONNECTED (Active Collections: {len(rest_cols.collections)})"
+        )
 
         # B. Binary gRPC Interface (Port 6334)
         grpc_client = QdrantClient(
             host=settings.QDRANT_HOST,
             port=settings.QDRANT_PORT,
             grpc_port=settings.QDRANT_GRPC_PORT,
-            prefer_grpc=True
+            prefer_grpc=True,
         )
         grpc_cols = grpc_client.get_collections()
-        print(f"  --> gRPC Interface (Port {settings.QDRANT_GRPC_PORT}) : CONNECTED (Active Collections: {len(grpc_cols.collections)})")
+        print(
+            f"  --> gRPC Interface (Port {settings.QDRANT_GRPC_PORT}) : CONNECTED (Active Collections: {len(grpc_cols.collections)})"
+        )
 
     except Exception as e:
         print(f"  [X] QDRANT CONNECTION FAILED: {e}")
@@ -53,6 +57,7 @@ def run_audit():
     print("\n==================================================")
     print("AUDIT RESULT: 100% PASSED. PHASE 0 OFFICIALLY CLOSED.")
     print("==================================================")
+
 
 if __name__ == "__main__":
     run_audit()

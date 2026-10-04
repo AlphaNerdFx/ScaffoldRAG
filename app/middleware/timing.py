@@ -1,9 +1,9 @@
 """app/middleware/timing.py: Subsystem latency profiling and structured JSON logging."""
 
-from datetime import datetime, timezone
 import json
 import logging
 import time
+from datetime import datetime, timezone
 
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint

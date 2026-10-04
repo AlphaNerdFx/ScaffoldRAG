@@ -20,7 +20,9 @@ from app.services.indexer import IndexerService
 def main() -> int:
     blueprints_dir = Path("data/blueprints")
     settings = Settings()
-    print(f"Connecting to Qdrant at {settings.QDRANT_HOST}:{settings.QDRANT_GRPC_PORT} (prefer_grpc=True)...")
+    print(
+        f"Connecting to Qdrant at {settings.QDRANT_HOST}:{settings.QDRANT_GRPC_PORT} (prefer_grpc=True)..."
+    )
 
     try:
         client = QdrantClient(
@@ -57,7 +59,9 @@ def main() -> int:
         print("ERROR: Points count is 0. Definition of Done not met.")
         return 1
 
-    print("\nDoD Confirmed: Collection is active and populated. Open http://localhost:6333/dashboard to inspect payloads.")
+    print(
+        "\nDoD Confirmed: Collection is active and populated. Open http://localhost:6333/dashboard to inspect payloads."
+    )
     return 0
 
 

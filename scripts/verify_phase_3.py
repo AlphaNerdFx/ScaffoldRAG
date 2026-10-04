@@ -1,6 +1,7 @@
 """scripts/verify_phase_3.py: End-to-end integration test spanning Phase 2 and Phase 3."""
 
 import time
+
 from qdrant_client import QdrantClient
 
 from app.core.circuit_breaker import CircuitBreaker, FallbackProvider
@@ -122,12 +123,18 @@ def main() -> None:
     # Strict architectural assertions
     assert len(roadmap.milestones) == 5, "Invariant breach: must have exactly 5 milestones"
     assert [m.stage for m in roadmap.milestones] == [1, 2, 3, 4, 5], "Stages must be sequential 1-5"
-    
+
     # Assert local compute bounds (deterministic)
     # Assert local compute bounds matching PRD Section 1.3 (Hybrid <= 400ms + Reranker <= 600ms = 1000ms))
-    assert t_local <= 1000.0, f"Local retrieval pipeline exceeded PRD SLA ceiling (1000ms): {t_local:.1f}ms"
-    assert timings["total_ms"] <= 4000.0, f"Total pipeline latency exceeded hard ceiling (4000ms): {timings['total_ms']:.1f}ms"
-    print("\n[SUCCESS] Local retrieval and structured generation formally verified against PRD SLAs!")
+    assert t_local <= 1000.0, (
+        f"Local retrieval pipeline exceeded PRD SLA ceiling (1000ms): {t_local:.1f}ms"
+    )
+    assert timings["total_ms"] <= 4000.0, (
+        f"Total pipeline latency exceeded hard ceiling (4000ms): {timings['total_ms']:.1f}ms"
+    )
+    print(
+        "\n[SUCCESS] Local retrieval and structured generation formally verified against PRD SLAs!"
+    )
 
 
 if __name__ == "__main__":
