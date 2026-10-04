@@ -7,7 +7,7 @@ readme = "README.md"
 packages = [{include = "app"}]
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = ">=3.11,<3.13"
 fastapi = "^0.111.0"
 uvicorn = {extras = ["standard"], version = "^0.30.0"}
 pydantic = "^2.7.0"
@@ -16,8 +16,9 @@ instructor = "^1.3.3"
 groq = "^0.9.0"
 qdrant-client = "^1.9.1"
 fastembed = "0.4.2"
-sentence-transformers = "^3.0.0"
 httpx = "^0.27.0"
+
+[tool.poetry.group.frontend.dependencies]
 streamlit = "^1.35.0"
 
 [tool.poetry.group.dev.dependencies]
@@ -38,9 +39,18 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "B", "S", "I"]
-ignore = ["B008"]
+ignore = ["B008", "E501"]
 
-[tool.pytest.ini_options]
-asyncio_mode = "auto"
-testpaths = ["tests"]
-python_files = "test_*.py"
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101", "E731"]
+"scripts/*" = ["S101", "E731"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["fastembed.*", "grpc.*", "instructor.*"]
+ignore_missing_imports = true
