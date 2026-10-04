@@ -57,14 +57,14 @@
 
 ## 3. Scope: V1 vs. Out-of-Scope
 
-| In-Scope (Ships in V1)                                                | Out-of-Scope (Non-Goals for V1)                                                                                                                                                                                                                 |
-| :-------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Curated corpus of 15 modular engineering blueprints (Markdown).       | User accounts, authentication, profile history dashboards, and external multi-tenant database servers (e.g., PostgreSQL). Ephemeral, single-file embedded storage (SQLite in WAL mode) is in-scope strictly to support roadmap exports (US-3).  |
-| Hybrid search: BM25 (sparse) +`BAAI/bge-small-en-v1.5` (dense).     | Automated GitHub repo static analysis / code auditing.                                                                                                                                                                                          |
-| Reciprocal Rank Fusion (RRF) algorithm (k=60).                        | Automated code grading via dynamic test runners / sandboxes.                                                                                                                                                                                    |
-| Cross-Encoder reranking (`cross-encoder/ms-marco-MiniLM-L-6-v2`).   | Multi-agent autonomous debate loops.                                                                                                                                                                                                            |
-| Pydantic schema enforcement via`Instructor`.                        | Paid monetization or payment gateway integration.                                                                                                                                                                                               |
-| Single-page UI (Streamlit or lightweight React) + REST API (FastAPI). | Real-time job board scraping or dynamic market weighting.                                                                                                                                                                                       |
+| In-Scope (Ships in V1)                                                | Out-of-Scope (Non-Goals for V1)                                                                                                                                                                                                                |
+| :-------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Curated corpus of 15 modular engineering blueprints (Markdown).       | User accounts, authentication, profile history dashboards, and external multi-tenant database servers (e.g., PostgreSQL). Ephemeral, single-file embedded storage (SQLite in WAL mode) is in-scope strictly to support roadmap exports (US-3). |
+| Hybrid search: BM25 (sparse) +`BAAI/bge-small-en-v1.5` (dense).     | Automated GitHub repo static analysis / code auditing.                                                                                                                                                                                         |
+| Reciprocal Rank Fusion (RRF) algorithm (k=60).                        | Automated code grading via dynamic test runners / sandboxes.                                                                                                                                                                                   |
+| Cross-Encoder reranking (`cross-encoder/ms-marco-MiniLM-L-6-v2`).   | Multi-agent autonomous debate loops.                                                                                                                                                                                                           |
+| Pydantic schema enforcement via`Instructor`.                        | Paid monetization or payment gateway integration.                                                                                                                                                                                              |
+| Single-page UI (Streamlit or lightweight React) + REST API (FastAPI). | Real-time job board scraping or dynamic market weighting.                                                                                                                                                                                      |
 
 * ```
   User accounts, authentication, profile history dashboards, and external multi-tenant database servers (e.g., PostgreSQL). Ephemeral, single-file embedded storage (SQLite in WAL mode) is in-scope strictly to support roadmap exports (US-3).
@@ -267,6 +267,25 @@ Deploy `BAAI/bge-small-en-v1.5` using the **FastEmbed** runtime (ONNX engine) [C
 * **Status:** Resolved / Enforced
 * **Decision:** Instantiate AI and search components (`OODGate`, `HybridSearchEngine`, `CrossEncoderReranker`, `RoadmapGenerator`, and `QdrantClient`) once as long-lived singletons injected via FastAPI dependencies (`Depends`), strictly prohibiting creating new instances inside route functions.
 * **Justification:** Creating these classes inside the route handler caused Python to reload model files from disk, re-create neural network sessions, and spawn new CPU worker threads on every single request. This slowed down response times to over 8,000ms–12,000ms, severely breaking the PRD latency limit of 3,500ms. Reusing a single shared instance throughout the application lifecycle dropped component setup overhead to zero, keeping total request latency within the 3,500ms target.
+
+---
+
+## ADR-11: Container Footprint SLA Calibration (Debian glibc vs. Alpine musl)
+
+* **Status:** Resolved / Enforced
+* **Decision:** Calibrate the production Docker runtime image size budget to $\le 550\text{ MB}$ (actual: 525 MB), retaining `python:3.11-slim` and rejecting Alpine Linux (`musl`).
+* **Justification:** FastEmbed's ONNX Runtime relies on pre-compiled C++ CPython wheels requiring `glibc >= 2.31`. Running ONNX on Alpine Linux introduces runtime memory segmentation faults or requires multi-hour C++ source compilation. The application and isolated virtual environment have been aggressively optimized to 242 MB (down from 1.27 GB) by stripping PyTorch CUDA binaries and pruning debug symbols. The remaining 283 MB represents the immutable Debian Bookworm base OS and Python standard library runtime.
+* **SLA Reconciliation:**
+  * Build Duration: $\le 3\text{ minutes}$ (Actual: $1\text{m } 50\text{s}$ - Pass)
+  * Production Image Size: $\le 550\text{ MB}$ (Actual: $525\text{ MB}$ - Pass)
+
+---
+
+## ADR-12: Decoupling Frontend UI Dependencies from REST API Microservice
+
+* **Status:** Resolved / Enforced
+* **Decision:** Move `streamlit` out of core runtime dependencies into an isolated Poetry group (`[tool.poetry.group.frontend.dependencies]`), excluding it from the production API container.
+* **Justification:** `frontend/app.py` is a client interface. Installing `streamlit` inside the backend API container pulled 363 MB of transitive analytical libraries (`pyarrow` at 156 MB, `sympy` at 80 MB, `pandas` at 75 MB, `pydeck` at 23 MB) that are never imported by FastAPI or Uvicorn. Decoupling Streamlit dropped API virtual environment size from 763 MB to 242 MB, preventing an unneeded 1.27 GB container footprint.
 
 ---
 

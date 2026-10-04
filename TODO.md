@@ -158,27 +158,27 @@
 
 *Goal: Prove system reliability, benchmark precision, and containerize for deployment.*
 
-- [ ] **Task 5.1: Golden Dataset Curation & Retrieval Benchmark**
+- [X] **Task 5.1: Golden Dataset Curation & Retrieval Benchmark**
 
   - Create `tests/golden_dataset.json` containing 30 representative student queries and their manually mapped ground-truth blueprint IDs [Certain].
   - Write `tests/benchmarks/test_retrieval_precision.py` using Ragas or custom precision scoring.
   - Calculate Context Precision@4 across the dataset [Certain].
   - *DoD:* Test suite programmatically asserts that mean `context_precision` $\ge 0.85$ [Certain].
-- [ ] **Task 5.2: Unit & Integration Test Suite**
+- [X] **Task 5.2: Unit & Integration Test Suite**
 
   - Implement unit tests for:
     - RRF scoring algorithm logic (`tests/test_rrf.py`).
     - Pydantic schema validation rejection rules (`tests/test_schemas.py`).
     - Circuit breaker state transitions (`tests/test_circuit_breaker.py`).
   - *DoD:* Running `pytest --cov=app tests/` reports $\ge 85\%$ code coverage with 0 test failures [Certain].
-- [ ] **Task 5.3: Production Multi-Stage Containerization**
+- [X] **Task 5.3: Production Multi-Stage Containerization**
 
   - Write a multi-stage `Dockerfile`:
     - Stage 1: Dependency builder (installs build tools, packages wheels) [Certain].
     - Stage 2: Runtime image (non-root user, copies only necessary wheels and source files) [Certain].
   - Update `docker-compose.yml` to orchestrate both the Qdrant service and the FastAPI backend service on a shared internal network [Certain].
   - *DoD:* Container builds in under 3 minutes; total runtime image size is $\le 450\text{ MB}$ [Certain].
-- [ ] **Task 5.4: Continuous Integration Pipeline (GitHub Actions)**
+- [X] **Task 5.4: Continuous Integration Pipeline (GitHub Actions)**
 
   - Create `.github/workflows/ci.yml`:
     - Step 1: Lint code with `ruff check .` and `ruff format --check .` [Certain].

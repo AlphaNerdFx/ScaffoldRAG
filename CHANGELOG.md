@@ -82,3 +82,65 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Migrated default inference model from deprecated `llama-3.1-8b-instant` to active `openai/gpt-oss-20b` in `app/core/config.py`.
 - Switched Instructor extraction strategy from `Mode.TOOLS` to `Mode.JSON` to support native Groq constrained JSON decoding.
 - Allocated explicit completion token ceiling (`max_tokens=4096`) to eliminate stream truncation exceptions on multi-stage payloads.
+
+## [0.4.0] - 2026-10-04
+
+### Added
+
+- **REST Transport Layer (`app/api/v1/endpoints.py`):**
+  - Implemented `POST /api/v1/roadmaps` orchestrating OOD Gate evaluation, hybrid retrieval, cross-encoder reranking, and Instructor-constrained Groq generation.
+  - Implemented `GET /api/v1/roadmaps/{id}/export?format=markdown` to retrieve and format roadmaps into GitHub-flavored Markdown checklists.
+  - Implemented `GET /health` to probe Qdrant gRPC socket connectivity and system readiness.
+- **Embedded Storage Engine (`app/services/storage.py`):**
+  - Created `SQLiteRoadmapRepository` utilizing Python's built-in `sqlite3` in Write-Ahead Logging (WAL) mode (`data/roadmaps.db`) to enable single-digit millisecond roadmap persistence without external database servers (ADR-09).
+- **Markdown Checklist Serializer (`app/services/exporter.py`):**
+  - Added deterministic AST serialization converting validated `ProjectRoadmap` models into actionable GitHub Markdown checklists with interactive `- [ ]` verification tasks.
+- **Latency Profiling Middleware (`app/middleware/timing.py`):**
+  - Built `LatencyProfilingMiddleware` injecting the `X-Process-Time-Ms` response header and logging structured JSON records capturing sub-system execution timings (`t_ood_ms`, `t_retrieval_ms`, `t_rerank_ms`, `t_generation_ms`, `t_total_ms`).
+- **Streamlit Web Client (`frontend/app.py`):**
+  - Created an interactive browser interface featuring user parameter controls, 5-stage expandable cards, tool badges, explicit tradeoffs, direct Markdown checklist downloads, and `st.session_state` protection against accidental re-generation.
+- **Automated Test Harness (`tests/test_api.py`, `tests/test_timing_middleware.py`):**
+  - Added 10 automated asynchronous tests using `httpx.AsyncClient` asserting endpoint contracts, status codes (200, 404, 422, 502, 503), circuit breaker degradation headers, and telemetry emission.
+
+### Changed
+
+- **Persistent Engine Lifecycle (ADR-10):**
+  - Refactored `OODGate`, `HybridSearchEngine`, `CrossEncoderReranker`, `RoadmapGenerator`, and `QdrantClient` from per-request instantiations into long-lived module singletons injected via FastAPI `Depends`.
+- **Query Parameter Validation:**
+  - Migrated `/export` format validation from deprecated `regex` to `pattern` in compliance with Pydantic V2 and FastAPI standards.
+- **Specification Documentation:**
+  - Updated `docs/PRD_V1.md` and `docs/SPEC_V1.md` to document SQLite WAL persistence, singleton dependency lifecycles, and degradation response headers.
+
+### Fixed
+
+- **Eliminated Severe Per-Request Model Loading Bottleneck:**
+
+  - Resolved an issue where FastEmbed and ONNX runtimes reloaded model weights from disk on every incoming query, dropping total request latency from $>12,000\text{ms}$ down to $\approx 3,200\text{ms}$ to satisfy PRD Section 1.3 P95 bounds.
+- **Eliminated Live Socket Leakage in Health Unit Tests:**
+
+  - Replaced constructor monkey-patching with FastAPI dependency injection overrides in `test_health_check_qdrant_unhealthy`, guaranteeing simulated socket failures do not query the live Docker daemon.
+
+## [0.5.0] - 2026-10-05
+
+### Added
+
+* Curated 30-query evaluation benchmark (`tests/golden_dataset.json`) and automated runner (`tests/benchmarks/test_retrieval_precision.py`) validating Context Precision@4 $= 0.8593 \ge 0.85$.
+* Deterministic dataset generation script `scripts/generate_golden_dataset.py` mapping blueprint ASTs directly to query identifiers.
+* Unit test suites `tests/test_rrf.py`, `tests/test_schemas.py`, `tests/test_indexer.py`, and `tests/test_main.py`, bringing repository test coverage to 92% across 58 tests.
+* Production multi-stage `Dockerfile` with non-root security (`appuser:10001`), `.so` symbol stripping, and zero-dependency Python `urllib` healthcheck.
+* Multi-service `docker-compose.yml` orchestrating Qdrant 1.9.2 and FastAPI backend on private `scaffold_network` bridge.
+* 5-gate GitHub Actions CI/CD workflow (`.github/workflows/ci.yml`) enforcing linting, formatting, typing, 85% test coverage, and retrieval precision.
+* ADR-11 (Container Footprint SLA Calibration) and ADR-12 (Decoupling Frontend UI Dependencies).
+
+### Changed
+
+* Decoupled `streamlit` into dedicated `frontend` dependency group in `pyproject.toml`, trimming 363 MB of PyArrow, Pandas, and SymPy bloat from the production API container.
+* Calibrated container size budget to $\le 550\text{ MB}$ (actual: 525 MB) based on Debian Bookworm glibc requirements.
+* Locked Python range to `>=3.11,<3.13` and updated `poetry.lock` for Poetry 2.x compatibility.
+* Added `strict=True` to `zip()` calls in `indexer.py` and `reranker.py`.
+* Added guard clause in `app/api/v1/endpoints.py` to prevent Mypy union-attribute errors on optional repository instances.
+
+### Removed
+
+* Purged dead `sentence-transformers` package from dependencies, eliminating 4.5 GB of PyTorch and CUDA binaries.
+* Eliminated `curl` dependency from runtime container, saving 35 MB of apt packages.

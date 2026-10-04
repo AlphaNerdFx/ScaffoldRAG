@@ -123,7 +123,6 @@ class IndexerService:
   $$
   \max_i\left(\cos(\vec q,\vec v_i)\right) \ge 0.58
   $$
-
 - **Transport Boundary:** Raises domain-level `OutOfDistributionError`. Must not import or reference FastAPI HTTP exceptions.
 - **Protocol:** Dispatches `client.search` over the named vector `"dense"` using `prefer_grpc=True`.
 
@@ -299,16 +298,17 @@ class RoadmapGenerator:
 
 ### 4.1 Route Declarations & HTTP Contracts (app/api/v1/endpoints.py)
 
-| HTTP Method | Route Path | Request Body | Response Body | Status Codes | Response Headers Contract |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| POST | `/api/v1/roadmaps` | RoadmapRequest (JSON) | ProjectRoadmap (JSON) | 200, 422, 502, 503 | `X-Process-Time-Ms`, `X-Fallback-Applied`, `X-Fallback-Reason` (optional) |
-| GET | `/api/v1/roadmaps/{id}/export?format=markdown` | None | Raw Text (`text/markdown`) | 200, 404, 422 | `Content-Type: text/markdown`, `X-Process-Time-Ms` |
-| GET | `/health` | None | `{"status": "healthy", "qdrant": bool}` | 200, 503 | `X-Process-Time-Ms` |
+| HTTP Method | Route Path                                       | Request Body          | Response Body                             | Status Codes       | Response Headers Contract                                                       |
+| :---------- | :----------------------------------------------- | :-------------------- | :---------------------------------------- | :----------------- | :------------------------------------------------------------------------------ |
+| POST        | `/api/v1/roadmaps`                             | RoadmapRequest (JSON) | ProjectRoadmap (JSON)                     | 200, 422, 502, 503 | `X-Process-Time-Ms`, `X-Fallback-Applied`, `X-Fallback-Reason` (optional) |
+| GET         | `/api/v1/roadmaps/{id}/export?format=markdown` | None                  | Raw Text (`text/markdown`)              | 200, 404, 422      | `Content-Type: text/markdown`, `X-Process-Time-Ms`                          |
+| GET         | `/health`                                      | None                  | `{"status": "healthy", "qdrant": bool}` | 200, 503           | `X-Process-Time-Ms`                                                           |
 
 ### 4.2 Latency Profiling Middleware (app/middleware/timing.py)
 
 - Injects `X-Process-Time-Ms` HTTP response header representing total request execution time in milliseconds.
 - Emits one structured JSON log line per request to standard output (`stdout`) via `LatencyProfilingMiddleware`:
+
 ```json
 {
   "timestamp": "2026-10-04T03:40:34.419870+00:00",
@@ -342,8 +342,10 @@ class SQLiteRoadmapRepository:
 ```
 
 ### 4.4 Subsystem 4.4: Markdown Checklist Serializer (app/services/exporter.py)
+
 Purpose: Converts a validated ProjectRoadmap object into a GitHub-ready Markdown checklist.
 Formatting Rules:
+
 * Root title formatted as # {project_title} with metadata block.
 * Each milestone formatted as ## Stage {stage}: {name}.
 * Acceptance criteria formatted with unchecked interactive boxes:  - [ ] **Verification Metric:** {verification_metric}.
@@ -404,6 +406,43 @@ class CircuitBreaker:
         """Executes func if CLOSED/HALF-OPEN. If OPEN or on error, executes fallback_func in <= 50ms."""
         ...
 ```
+
+---
+
+## Subsystem 6: Evaluation Harness & CI/CD Quality Pipeline
+
+### 6.1 Purpose & Execution Boundary (SPEC Appendix B.2)
+
+Subsystem 6 is an offline verification harness executed exclusively during CI/CD to detect regressions in retrieval accuracy, schema enforcement, and test coverage prior to deployment. It does not run on live client requests.
+
+### 6.2 Mathematical Evaluation Contract (tests/benchmarks/test_retrieval_precision.py)
+
+* **Dataset:** Immutable 30-query golden dataset (`tests/golden_dataset.json`).
+* **Metric Formula:**
+  $$
+  \text{Context Precision@4} = \frac{\sum_{k=1}^4 (\text{Precision@}k \times v_k)}{\text{Total Relevant Chunks in Top 4}}
+  $$
+
+  Where $v_k = 1$ if chunk at rank $k$ matches `expected_chunk_ids` or `expected_module_name`, else $0$.
+* **Quality Gate Assertion:** `mean(Context Precision@4) >= 0.85` (Current baseline: `0.8593`).
+
+### 6.3 Automated CI Quality Gates (.github/workflows/ci.yml)
+
+All pull requests to `main` must pass five sequential gates:
+
+1. `ruff check .` (Rules: E, F, B, S, I; S101 and E731 ignored on tests).
+2. `ruff format --check .` (Strict 100-character line limit).
+3. `mypy app/` (PEP 484 static type checking with third-party stubs ignored).
+4. `pytest --cov=app --cov-fail-under=85 tests/` (Minimum 85% coverage; current baseline: 92%).
+5. `pytest tests/benchmarks/test_retrieval_precision.py` (Asserts precision $\ge 0.85$).
+
+### 6.4 Production Container Specifications (Dockerfile)
+
+* **Base:** `python:3.11-slim` (Debian Bookworm, glibc-compatible).
+* **User:** Non-root unprivileged `appuser` (UID 10001, GID 10001).
+* **Port:** 8000 (Exposed).
+* **Healthcheck:** Native Python `urllib.request` against `/api/v1/health` (no `curl` dependency).
+* **Size Constraint:** $\le 550\text{ MB}$ (ADR-11).
 
 ---
 
