@@ -20,7 +20,6 @@ jobs:
         ports:
           - 6333:6333
           - 6334:6334
-        # Stripped --health-cmd because qdrant/qdrant has no curl
 
     steps:
       - name: Check out repository
@@ -58,13 +57,13 @@ jobs:
 
       - name: Gate 1 - Code Quality Checks (Ruff)
         run: |
-          poetry run ruff check .
+          poetry run ruff check --show-source .
           poetry run ruff format --diff .
           poetry run ruff format --check .
 
       - name: Gate 2 - Static Type Checking (Mypy)
         run: |
-          poetry run mypy app/
+          poetry run mypy --show-error-context --show-column-numbers --pretty app/
 
       - name: Gate 3 - Ingest Knowledge Base into Ephemeral Qdrant
         env:
@@ -81,7 +80,7 @@ jobs:
           QDRANT_COLLECTION_NAME: engineering_blueprints
           GROQ_API_KEY: "gsk_ci_test_dummy_key_0000000000000000000000"
         run: |
-          poetry run pytest --cov=app --cov-report=term-missing --cov-fail-under=85 tests/
+          poetry run pytest --cov=app --cov-report=term-missing --cov-fail-under=85 -vv -rA tests/
 
       - name: Gate 5 - Context Precision Retrieval Benchmark (Precision >= 0.85)
         env:
@@ -89,4 +88,4 @@ jobs:
           QDRANT_GRPC_PORT: 6334
           QDRANT_COLLECTION_NAME: engineering_blueprints
         run: |
-          poetry run pytest tests/benchmarks/test_retrieval_precision.py -v
+          poetry run pytest tests/benchmarks/test_retrieval_precision.py -vv -s

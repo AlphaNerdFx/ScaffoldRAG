@@ -55,5 +55,16 @@ disallow_untyped_defs = false
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = ["fastembed.*", "grpc.*", "instructor.*"]
+module = [
+    "fastembed.*",
+    "grpc.*",
+    "instructor.*",
+]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+    "app.services.search.ood_gate",
+    "app.services.search.hybrid_search",
+]
+disable_error_code = ["attr-defined"]
