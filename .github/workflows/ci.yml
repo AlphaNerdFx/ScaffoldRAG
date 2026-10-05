@@ -17,13 +17,15 @@ jobs:
     # Global environment variables shared across all gates
     env:
       QDRANT_HOST: localhost
+      QDRANT_HTTP_PORT: 6333
       QDRANT_GRPC_PORT: 6334
       QDRANT_COLLECTION_NAME: engineering_blueprints
       GROQ_API_KEY: "gsk_ci_test_dummy_key_0000000000000000000000"
 
     services:
       qdrant:
-        image: qdrant/qdrant:v1.9.2
+        # Upgrade from 1.9.2 to 1.10.1 to support models.Modifier.IDF
+        image: qdrant/qdrant:v1.10.1
         ports:
           - 6333:6333
           - 6334:6334

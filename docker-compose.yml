@@ -5,7 +5,7 @@ services:
   # SERVICE 1: QDRANT (Vector & Inverted Search Storage)
   # ===========================================================================
   qdrant:
-    image: qdrant/qdrant:v1.9.2
+    image: qdrant/qdrant:v1.10.1
     container_name: scaffold_rag_qdrant
     restart: unless-stopped
     ports:

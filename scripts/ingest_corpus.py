@@ -27,9 +27,9 @@ def main() -> int:
     try:
         client = QdrantClient(
             host=settings.QDRANT_HOST,
-            port=settings.QDRANT_GRPC_PORT,
+            port=settings.QDRANT_HTTP_PORT,
+            grpc_port=settings.QDRANT_GRPC_PORT,
             prefer_grpc=True,
-            timeout=10.0,
         )
     except Exception as exc:
         print(f"FATAL: Could not establish Qdrant connection: {exc}")
