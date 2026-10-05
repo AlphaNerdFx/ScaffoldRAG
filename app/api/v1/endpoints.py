@@ -2,10 +2,9 @@
 
 import logging
 import time
-from typing import Annotated
+from typing import Annotated,  Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
-from fastapi.responses import PlainTextResponse
 from qdrant_client import QdrantClient
 
 from app.core.circuit_breaker import CircuitBreaker, FallbackProvider
@@ -196,29 +195,29 @@ def health_check(
     return {"status": "healthy", "qdrant": True}
 
 
-@router.get(
-    "/roadmaps/{roadmap_id}/export",
-    response_class=PlainTextResponse,
-    summary="Export Roadmap to Markdown GitHub Checklist",
-)
-def export_roadmap(
-    roadmap_id: str,
-    format: str = Query(default="markdown", pattern="^markdown$"),
-    repo: Annotated[RoadmapRepository, Depends(get_repository)] | None = None,
-) -> PlainTextResponse:
+@router.get("/roadmaps/{id}/export")
+async def export_roadmap(
+    id: str,
+    format: Literal["markdown"] = Query(default="markdown"),
+    repo: RoadmapRepository = Depends(get_repository),
+) -> Response:
     """Fetches roadmap by ID and converts it to raw Markdown checklist."""
-    # Guard against None to satisfy PEP 484 and Mypy
-    if repo is None:
-        from app.services.storage import SQLiteRoadmapRepository
+    if format != "markdown":
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Unsupported format '{format}'. Only 'markdown' is currently supported.",
+        )
 
-        repo = SQLiteRoadmapRepository()
-
-    roadmap = repo.get_by_id(roadmap_id)
-    if roadmap is None:
+    roadmap = repo.get_by_id(id)
+    if not roadmap:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Roadmap ID '{roadmap_id}' does not exist or has expired.",
+            detail=f"Roadmap ID '{id}' does not exist.",
         )
 
     markdown_content = roadmap_to_markdown(roadmap)
-    return PlainTextResponse(content=markdown_content, media_type="text/markdown")
+    return Response(
+        content=markdown_content,
+        media_type="text/markdown",
+        headers={"Content-Disposition": f'attachment; filename="roadmap_{id}.md"'},
+    )
