@@ -160,29 +160,39 @@
 
 - [X] **Task 5.1: Golden Dataset Curation & Retrieval Benchmark**
 
-  - Create `tests/golden_dataset.json` containing 30 representative student queries and their manually mapped ground-truth blueprint IDs [Certain].
-  - Write `tests/benchmarks/test_retrieval_precision.py` using Ragas or custom precision scoring.
-  - Calculate Context Precision@4 across the dataset [Certain].
-  - *DoD:* Test suite programmatically asserts that mean `context_precision` $\ge 0.85$ [Certain].
+  - [X] Created `tests/golden_dataset.json` with 30 representative student queries mapped to verified blueprint chunk UUIDs.
+  - [X] Implemented `tests/benchmarks/test_retrieval_precision.py` evaluating Context Precision@4.
+  - [X] *DoD Met:* Test suite programmatically asserts that mean `context_precision` $\ge 0.85$ (Empirically verified: **0.8593**).
 - [X] **Task 5.2: Unit & Integration Test Suite**
 
-  - Implement unit tests for:
-    - RRF scoring algorithm logic (`tests/test_rrf.py`).
-    - Pydantic schema validation rejection rules (`tests/test_schemas.py`).
-    - Circuit breaker state transitions (`tests/test_circuit_breaker.py`).
-  - *DoD:* Running `pytest --cov=app tests/` reports $\ge 85\%$ code coverage with 0 test failures [Certain].
+  - [X] Implemented unit tests for RRF scoring algorithm logic (`tests/test_rrf.py`).
+  - [X] Implemented unit tests for Pydantic schema rejection rules (`tests/test_schemas.py`).
+  - [X] Implemented unit tests for Indexer AST parsing and Qdrant error handling (`tests/test_indexer.py`).
+  - [X] Implemented lifespan pre-warming tests (`tests/test_main.py`).
+  - [X] Verified circuit breaker state transitions (`tests/test_circuit_breaker.py`).
+  - [X] *DoD Met:* Running `pytest --cov=app tests/` reports **93.20%** code coverage with **0 test failures** across 59 tests.
 - [X] **Task 5.3: Production Multi-Stage Containerization**
 
-  - Write a multi-stage `Dockerfile`:
-    - Stage 1: Dependency builder (installs build tools, packages wheels) [Certain].
-    - Stage 2: Runtime image (non-root user, copies only necessary wheels and source files) [Certain].
-  - Update `docker-compose.yml` to orchestrate both the Qdrant service and the FastAPI backend service on a shared internal network [Certain].
-  - *DoD:* Container builds in under 3 minutes; total runtime image size is $\le 450\text{ MB}$ [Certain].
+  - [X] Wrote multi-stage `Dockerfile` with non-root user (`appuser:10001`), symbol stripping, and zero-dependency Python `urllib` healthcheck.
+  - [X] Updated `docker-compose.yml` to orchestrate Qdrant 1.10.1 and FastAPI backend on shared `scaffold_network` bridge [5].
+  - [X] Purged `sentence-transformers` and isolated `streamlit` to keep virtual environment at 242 MB.
+  - [X] *DoD Met:* Container builds in $1\text{m } 50\text{s}$ ($<3\text{ minutes}$); total runtime image size is **525 MB** (calibrated via ADR-11 to $\le 550\text{ MB}$).
 - [X] **Task 5.4: Continuous Integration Pipeline (GitHub Actions)**
 
-  - Create `.github/workflows/ci.yml`:
-    - Step 1: Lint code with `ruff check .` and `ruff format --check .` [Certain].
-    - Step 2: Run type checking with `mypy app/` [Certain].
-    - Step 3: Spin up ephemeral Qdrant service container [Certain].
-    - Step 4: Run `pytest` test suite [Certain].
-  - *DoD:* Pushing code to GitHub triggers the workflow and reports a green checkmark on all steps [Certain].
+  - [X] Created `.github/workflows/ci.yml` running Ruff check, Ruff format check, Mypy, ephemeral Qdrant ingestion, coverage gate ($\ge 85\%$), and precision benchmark ($\ge 0.85$).
+  - [X] *DoD Met:* All 5 automated quality gates pass remotely on GitHub Actions with a green checkmark.
+
+---
+
+## Post-V1 Roadmap (Phase 6: Production Staging & User Evaluation)
+
+- [ ] **Task 6.1: Cloud Staging Deployment**
+  - Deploy `docker-compose.yml` onto a cloud Linux VM (e.g., AWS EC2 or Hetzner).
+  - Configure reverse proxy (Nginx or Caddy) with automated TLS termination.
+- [ ] **Task 6.2: Usability Testing (Time-to-Value Validation)**
+  - Conduct developer usability trials with ten 3rd- and 4th-year computing students.
+  - Measure percentage of students executing Milestone 1 within 60 minutes (PRD Metric 1.3: Target $\ge 80\%$).
+- [ ] **Task 6.3: Corpus Expansion**
+  - Author 15 additional modular engineering blueprints (advancing corpus from 15 to 30 modules, expanding beginner difficulty 1 representation
+
+*Goal: Prove system reliability, benchmark precision, and containerize for deployment.*

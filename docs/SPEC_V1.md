@@ -412,37 +412,30 @@ class CircuitBreaker:
 ## Subsystem 6: Evaluation Harness & CI/CD Quality Pipeline
 
 ### 6.1 Purpose & Execution Boundary (SPEC Appendix B.2)
-
 Subsystem 6 is an offline verification harness executed exclusively during CI/CD to detect regressions in retrieval accuracy, schema enforcement, and test coverage prior to deployment. It does not run on live client requests.
 
 ### 6.2 Mathematical Evaluation Contract (tests/benchmarks/test_retrieval_precision.py)
-
-* **Dataset:** Immutable 30-query golden dataset (`tests/golden_dataset.json`).
-* **Metric Formula:**
-  $$
-  \text{Context Precision@4} = \frac{\sum_{k=1}^4 (\text{Precision@}k \times v_k)}{\text{Total Relevant Chunks in Top 4}}
-  $$
-
+* **Dataset:** Immutable 30-query golden dataset (`tests/golden_dataset.json`) mapping student queries across Machine Learning Engineer, Data Engineer, and Backend AI roles to deterministic UUIDv5 blueprint chunk identifiers.
+* **Metric Formula (PRD Appendix A.1):**
+  $$\text{Context Precision@4} = \frac{\sum_{k=1}^4 (\text{Precision@}k \times v_k)}{\text{Total Relevant Chunks in Top 4}}$$
   Where $v_k = 1$ if chunk at rank $k$ matches `expected_chunk_ids` or `expected_module_name`, else $0$.
-* **Quality Gate Assertion:** `mean(Context Precision@4) >= 0.85` (Current baseline: `0.8593`).
+* **Quality Gate Assertion:** `mean(Context Precision@4) >= 0.85` (Empirically verified baseline: `0.8593`).
 
 ### 6.3 Automated CI Quality Gates (.github/workflows/ci.yml)
-
-All pull requests to `main` must pass five sequential gates:
-
-1. `ruff check .` (Rules: E, F, B, S, I; S101 and E731 ignored on tests).
-2. `ruff format --check .` (Strict 100-character line limit).
-3. `mypy app/` (PEP 484 static type checking with third-party stubs ignored).
-4. `pytest --cov=app --cov-fail-under=85 tests/` (Minimum 85% coverage; current baseline: 92%).
-5. `pytest tests/benchmarks/test_retrieval_precision.py` (Asserts precision $\ge 0.85$).
+All pull requests to `main` must pass five sequential dependency-gated verification jobs:
+1. **Gate 1 (Formatting & Style):** `ruff check .` and `ruff format --check .` (Strict 100-character line limit, `line-ending = "lf"`, test ignores: `S101`, `E731`).
+2. **Gate 2 (Static Typing):** `mypy app/` (PEP 484 static type checking with third-party stubs ignored and scoped `attr-defined` override for `app.services.search.*`).
+3. **Gate 3 (Knowledge Ingestion):** Ingests all 15 blueprints into an ephemeral Qdrant 1.10.1 instance over gRPC (6334) [5].
+4. **Gate 4 (Unit & Integration Coverage):** `pytest --cov=app --cov-report=term-missing --cov-fail-under=85 tests/` (Empirically verified: 93.20% coverage across 59 tests).
+5. **Gate 5 (Algorithmic Precision Benchmark):** `pytest tests/benchmarks/test_retrieval_precision.py` (Asserts Context Precision@4 $\ge 0.85$).
 
 ### 6.4 Production Container Specifications (Dockerfile)
-
-* **Base:** `python:3.11-slim` (Debian Bookworm, glibc-compatible).
-* **User:** Non-root unprivileged `appuser` (UID 10001, GID 10001).
-* **Port:** 8000 (Exposed).
-* **Healthcheck:** Native Python `urllib.request` against `/api/v1/health` (no `curl` dependency).
-* **Size Constraint:** $\le 550\text{ MB}$ (ADR-11).
+* **Base OS:** `python:3.11-slim` (Debian Bookworm, POSIX `glibc >= 2.31`).
+* **Security Context:** Non-root unprivileged `appuser` (UID 10001, GID 10001).
+* **Port Allocations:** `8000` (FastAPI REST API).
+* **Healthcheck:** Native Python standard library `urllib.request` against `/api/v1/health` (zero external `curl` dependency).
+* **Binary Hardening:** Stripped `.so` debug symbols via `strip --strip-unneeded`; uninstalled `pip`, `setuptools`, and `wheel` from production runtime image.
+* **Size Constraint:** $\le 550\text{ MB}$ per ADR-11 (Empirically verified: `525 MB`).
 
 ---
 

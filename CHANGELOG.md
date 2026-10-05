@@ -126,11 +126,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Curated 30-query evaluation benchmark (`tests/golden_dataset.json`) and automated runner (`tests/benchmarks/test_retrieval_precision.py`) validating Context Precision@4 $= 0.8593 \ge 0.85$.
 * Deterministic dataset generation script `scripts/generate_golden_dataset.py` mapping blueprint ASTs directly to query identifiers.
-* Unit test suites `tests/test_rrf.py`, `tests/test_schemas.py`, `tests/test_indexer.py`, and `tests/test_main.py`, bringing repository test coverage to 92% across 58 tests.
+* Unit test suites `tests/test_rrf.py`, `tests/test_schemas.py`, `tests/test_indexer.py`, and `tests/test_main.py`, bringing repository test coverage to 93.20% across 59 tests.
 * Production multi-stage `Dockerfile` with non-root security (`appuser:10001`), `.so` symbol stripping, and zero-dependency Python `urllib` healthcheck.
-* Multi-service `docker-compose.yml` orchestrating Qdrant 1.9.2 and FastAPI backend on private `scaffold_network` bridge.
+* Multi-service `docker-compose.yml` orchestrating Qdrant 1.10.1 and FastAPI backend on private `scaffold_network` bridge [5].
 * 5-gate GitHub Actions CI/CD workflow (`.github/workflows/ci.yml`) enforcing linting, formatting, typing, 85% test coverage, and retrieval precision.
-* ADR-11 (Container Footprint SLA Calibration) and ADR-12 (Decoupling Frontend UI Dependencies).
+* ADR-11 (Container Footprint SLA Calibration), ADR-12 (Decoupling Frontend UI Dependencies), and ADR-13 (Pinning Qdrant Client & Server to v1.10.1) [5].
+* Self-documenting root `Makefile` orchestrating local testing, formatting, ingestion, benchmarking, and container builds.
 
 ### Changed
 
@@ -138,9 +139,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Calibrated container size budget to $\le 550\text{ MB}$ (actual: 525 MB) based on Debian Bookworm glibc requirements.
 * Locked Python range to `>=3.11,<3.13` and updated `poetry.lock` for Poetry 2.x compatibility.
 * Added `strict=True` to `zip()` calls in `indexer.py` and `reranker.py`.
-* Added guard clause in `app/api/v1/endpoints.py` to prevent Mypy union-attribute errors on optional repository instances.
+* Fixed `app/api/v1/endpoints.py` dependency signature to use standard `Depends(get_repository)` and aligned 404 detail string with contract assertions.
+* Normalized repository line endings to Unix LF via `.gitattributes` and `pyproject.toml`.
 
 ### Removed
 
 * Purged dead `sentence-transformers` package from dependencies, eliminating 4.5 GB of PyTorch and CUDA binaries.
 * Eliminated `curl` dependency from runtime container, saving 35 MB of apt packages.
+
+### Fixed
+
+* Resolved gRPC binary Protocol Buffer mismatch by locking `qdrant-client` and `qdrant/qdrant` to version `1.10.1` [5].

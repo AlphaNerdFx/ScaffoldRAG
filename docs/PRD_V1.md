@@ -19,11 +19,11 @@
 ### 1.3 Success Metrics
 
 * [Certain] **Zero-Malformed-Output Rate:** 100% of API responses must pass Pydantic schema validation before reaching the client; 0 raw text or broken JSON payloads.
-* [Likely] **P95 Latency:** Total request-to-response cycle $\le$ 3,500ms (Hybrid Retrieval $\le$ 400ms, Reranking $\le$ 600ms, LLM Generation $\le$ 2,500ms).
-* [Likely] **Retrieval Precision (Ragas Context Precision):** $\ge$ 0.85 across test benchmarks.
-* [Certain] **Unit Economics:** Cost per generated roadmap $\le$ $0.015 using hosted models (e.g., `openai/gpt-oss-20b` via Groq LPU), or $0.00 using local open-weight inference (e.g., Llama 3 8B via Ollama).
-* [Likely] **Actionability Rate:** $\ge$ 80% of student testers successfully execute Milestone 1 within 60 minutes of generation.
-
+* [Likely] **P95 Latency:** Total request-to-response cycle $\le$ 3,500ms (Hybrid Retrieval $\le$ 150ms, Cross-Encoder Reranking $\le$ 600ms, LLM Generation $\le$ 2,500ms).
+* [Certain] **Retrieval Precision (Context Precision@4):** $\ge$ 0.85 (Empirically verified: **0.8593** across 30 golden dataset queries in CI).
+* [Certain] **Test Suite Quality Gate:** $\ge$ 85% statement coverage with 0 test failures (Empirically verified: **93.20%** across 59 tests in CI).
+* [Certain] **Container Footprint & Build SLA:** Build duration $\le$ 3 minutes (Empirically verified: **1m 50s**); Total runtime image size $\le$ 550 MB per ADR-11 (Empirically verified: **525 MB**).
+* [Certain] **Unit Economics:** Cost per generated roadmap $\le$ $0.015 using Groq LPU inference (`openai/gpt-oss-20b`).
 ---
 
 ## 2. User Stories & Acceptance Criteria
@@ -270,22 +270,30 @@ Deploy `BAAI/bge-small-en-v1.5` using the **FastEmbed** runtime (ONNX engine) [C
 
 ---
 
-## ADR-11: Container Footprint SLA Calibration (Debian glibc vs. Alpine musl)
+### ADR-11: Container Footprint SLA Calibration (Debian glibc vs. Alpine musl)
 
 * **Status:** Resolved / Enforced
-* **Decision:** Calibrate the production Docker runtime image size budget to $\le 550\text{ MB}$ (actual: 525 MB), retaining `python:3.11-slim` and rejecting Alpine Linux (`musl`).
-* **Justification:** FastEmbed's ONNX Runtime relies on pre-compiled C++ CPython wheels requiring `glibc >= 2.31`. Running ONNX on Alpine Linux introduces runtime memory segmentation faults or requires multi-hour C++ source compilation. The application and isolated virtual environment have been aggressively optimized to 242 MB (down from 1.27 GB) by stripping PyTorch CUDA binaries and pruning debug symbols. The remaining 283 MB represents the immutable Debian Bookworm base OS and Python standard library runtime.
+* **Decision:** Calibrate the production Docker runtime image size budget to $\le 550\text{ MB}$ (actual: 525 MB), retaining `python:3.11-slim` (Debian Bookworm) and strictly rejecting Alpine Linux (`musl`).
+* **Justification:** FastEmbed's ONNX Runtime relies on pre-compiled C++ CPython wheels requiring `glibc >= 2.31`. Running ONNX on Alpine Linux introduces runtime memory segmentation faults or requires multi-hour C++ source compilation. The application and isolated virtual environment have been aggressively optimized to 242 MB (down from 1.27 GB) by stripping PyTorch CUDA binaries, removing `pip`/`setuptools`/`wheel`, and pruning debug symbols. The remaining 283 MB represents the immutable Debian Bookworm base OS and Python standard library runtime.
 * **SLA Reconciliation:**
-  * Build Duration: $\le 3\text{ minutes}$ (Actual: $1\text{m } 50\text{s}$ - Pass)
-  * Production Image Size: $\le 550\text{ MB}$ (Actual: $525\text{ MB}$ - Pass)
+  * Build Duration: $\le 3\text{ minutes}$ (Actual: $1\text{m } 50\text{s}$ — Pass)
+  * Production Image Size: $\le 550\text{ MB}$ (Actual: $525\text{ MB}$ — Pass)
 
 ---
 
-## ADR-12: Decoupling Frontend UI Dependencies from REST API Microservice
+### ADR-12: Decoupling Frontend UI Dependencies from REST API Microservice
 
 * **Status:** Resolved / Enforced
 * **Decision:** Move `streamlit` out of core runtime dependencies into an isolated Poetry group (`[tool.poetry.group.frontend.dependencies]`), excluding it from the production API container.
 * **Justification:** `frontend/app.py` is a client interface. Installing `streamlit` inside the backend API container pulled 363 MB of transitive analytical libraries (`pyarrow` at 156 MB, `sympy` at 80 MB, `pandas` at 75 MB, `pydeck` at 23 MB) that are never imported by FastAPI or Uvicorn. Decoupling Streamlit dropped API virtual environment size from 763 MB to 242 MB, preventing an unneeded 1.27 GB container footprint.
+
+---
+
+### ADR-13: Pinning Qdrant Client & Server to v1.10.1 for Protocol Parity
+
+* **Status:** Resolved / Enforced
+* **Decision:** Pin both `qdrant-client` in `pyproject.toml` and the Qdrant container image in `docker-compose.yml` and `.github/workflows/ci.yml` strictly to version `1.10.1` [5], rejecting both obsolete images (`v1.9.2`) and breaking SDK bumps (`>=1.16.0`).
+* **Justification:** Qdrant `v1.9.2` lacked collection-level support for `models.Modifier.IDF` on sparse vectors, causing database provisioning to fail [5]. Conversely, `qdrant-client >= 1.16.0` (including `1.19.1`) introduced breaking SDK changes that completely deleted `client.search()` and `models.NamedVector` in favor of `client.query_points()`. Locking both client and server to `1.10.1` guarantees binary gRPC Protocol Buffer parity, enables the BM25 IDF modifier, and preserves the verified `client.search()` API across all 59 tests [5].
 
 ---
 
