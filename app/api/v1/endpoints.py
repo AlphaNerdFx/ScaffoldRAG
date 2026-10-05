@@ -2,7 +2,7 @@
 
 import logging
 import time
-from typing import Annotated,  Literal
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from qdrant_client import QdrantClient
