@@ -24,8 +24,8 @@ jobs:
 
     services:
       qdrant:
-        # Upgrade from 1.9.2 to 1.10.1 to support models.Modifier.IDF
-        image: qdrant/qdrant:v1.10.1
+        # Match client version 1.19.1 to eliminate gRPC protobuf schema divergence
+        image: qdrant/qdrant:v1.19.1
         ports:
           - 6333:6333
           - 6334:6334
