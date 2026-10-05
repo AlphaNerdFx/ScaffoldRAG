@@ -16,8 +16,8 @@ class Settings(BaseSettings):
 
     # Groq API Configuration
     GROQ_API_KEY: str = Field(
-        default="gskey_your_actual_groq_api_key_here",
-        description="Groq Cloud API Key (must begin with 'gsk_')",
+        default="gsk_default_development_key_for_offline_tools",
+        description="Groq API key starting with 'gsk_'",
     )
     INFERENCE_MODEL: str = Field(
         default="openai/gpt-oss-20b", description="Target LLM model identifier on Groq"
