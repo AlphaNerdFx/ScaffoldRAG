@@ -27,7 +27,7 @@ def main() -> int:
     try:
         client = QdrantClient(
             host=settings.QDRANT_HOST,
-            port=settings.QDRANT_HTTP_PORT,
+            port=settings.QDRANT_PORT,
             grpc_port=settings.QDRANT_GRPC_PORT,
             prefer_grpc=True,
         )
